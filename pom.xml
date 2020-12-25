@@ -120,7 +120,6 @@
 	</build>
 	<modules>
 		<module>namba-arrays</module>
-		<module>namba-dataframes</module>
 		<module>namba-datasources</module>
 		<module>namba-core</module>
 		<module>namba-cli</module>
