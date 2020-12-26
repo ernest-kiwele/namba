@@ -58,6 +58,11 @@ public class IntPair {
 		return this.a == p.a && this.b == p.b;
 	}
 
+	@Override
+	public String toString() {
+		return "(" + this.a + ", " + this.b + ")";
+	}
+
 	public static Comparator<IntPair> comparingByA() {
 		return Comparator.comparingInt(IntPair::a);
 	}
