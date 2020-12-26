@@ -105,6 +105,10 @@ public class IntList implements NambaList {
 	}
 
 	// utilities
+	public IntMatrix toMatrix(int width) {
+		return new IntMatrix(this.value, width);
+	}
+
 	@Override
 	public String toString() {
 		return Arrays.toString(this.value);
