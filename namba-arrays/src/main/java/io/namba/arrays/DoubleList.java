@@ -90,11 +90,16 @@ public class DoubleList implements NambaList {
 		return Arrays.stream(value);
 	}
 
+	public DoubleStream reverseStream() {
+		return IntStream.iterate(this.value.length - 1, i -> i - 1).limit(this.value.length)
+				.mapToDouble(i -> this.value[i]);
+	}
+
 	// casting
 	public IntList asInt() {
 		return ListCast.toInt(this);
 	}
-	
+
 	public DecimalList asDecimal() {
 		return ListCast.toDecimal(this);
 	}
@@ -149,5 +154,39 @@ public class DoubleList implements NambaList {
 
 	public DoubleList invert() {
 		return DoubleList.of(Arrays.stream(this.value).map(i -> 1 / i).toArray());
+	}
+
+	// reduction/aggregation
+
+	/*
+	 * counts non-NaN
+	 */
+	public int count() {
+		return (int) this.stream().filter(d -> !Double.isNaN(d)).count();
+	}
+
+	public DoubleList distinct() {
+		return DoubleList.of(this.stream().distinct().toArray());
+	}
+
+	public DoubleList unique() {
+		return this.distinct();
+	}
+
+	public DoubleList dropDuplicates() {
+		return this.dropDuplicates(false);
+	}
+
+	public DoubleList dropDuplicates(boolean keepLast) {
+		double[] data = (keepLast ? this.reverseStream() : this.stream()).distinct().toArray();
+		if (keepLast) {
+			double[] ordered = new double[data.length];
+
+			for (int i = data.length - 1; i >= 0; i--) {
+				ordered[data.length - 1 - i] = data[i];
+			}
+			data = ordered;
+		}
+		return DoubleList.of(data);
 	}
 }
