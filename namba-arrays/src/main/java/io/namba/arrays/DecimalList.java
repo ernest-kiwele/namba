@@ -45,10 +45,16 @@ import io.namba.arrays.range.IntRange;
 public class DecimalList extends DataList<BigDecimal> {
 
 	public static final MathContext DEFAULT_MATH_CONTEXT = MathContext.DECIMAL64;
+	public final MathContext mathContext;
 	public static final BigDecimal MINUS_ONE = BigDecimal.ONE.negate();
 
-	protected DecimalList(List<BigDecimal> is, Index index) {
+	protected DecimalList(List<BigDecimal> is, Index index, MathContext mathContext) {
 		super(DataType.BIGDECIMAL, is, index);
+		this.mathContext = mathContext == null ? DEFAULT_MATH_CONTEXT : mathContext;
+	}
+
+	protected DecimalList(List<BigDecimal> is, Index index) {
+		this(is, index, null);
 	}
 
 	protected DecimalList(List<BigDecimal> is) {
@@ -69,6 +75,10 @@ public class DecimalList extends DataList<BigDecimal> {
 
 	public static DecimalList of(BigDecimal[] v) {
 		return new DecimalList(Arrays.asList(v), null);
+	}
+
+	public DecimalList withMathContext(MathContext context) {
+		return new DecimalList(this.value, this.index, context);
 	}
 
 	/// methods
@@ -152,45 +162,45 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public DecimalList multiply(BigDecimal n) {
-		return new DecimalList(this.apply(i -> i.multiply(n)));
+		return new DecimalList(this.apply(i -> i.multiply(n, this.mathContext)));
 	}
 
 	public DecimalList multiply(DecimalList n) {
-		return this.zip(n, BigDecimal::multiply);
+		return this.zip(n, (a, b) -> a.multiply(b, this.mathContext));
 	}
 
 	public DecimalList minus(BigDecimal n) {
-		return this.apply(i -> i.subtract(n));
+		return this.apply(i -> i.subtract(n, this.mathContext));
 	}
 
 	public DecimalList minus(DecimalList n) {
-		return this.zip(n, BigDecimal::subtract);
+		return this.zip(n, (a, b) -> a.subtract(b, this.mathContext));
 	}
 
 	public DecimalList plus(BigDecimal n) {
-		return this.apply(i -> i.add(n));
+		return this.apply(i -> i.add(n, this.mathContext));
 	}
 
 	public DecimalList plus(DecimalList n) {
-		return this.zip(n, BigDecimal::add);
+		return this.zip(n, (a, b) -> a.add(b, this.mathContext));
 	}
 
 	public DecimalList divide(BigDecimal n) {
-		return this.apply(i -> i.divide(n));
+		return this.apply(i -> i.divide(n, this.mathContext));
 	}
 
 	public DecimalList divide(DecimalList n) {
-		return this.zip(n, BigDecimal::divide);
+		return this.zip(n, (a, b) -> a.divide(b, this.mathContext));
 	}
 
 	public DecimalList power(int n) {
-		return this.apply(i -> i.pow(n));
+		return this.apply(i -> i.pow(n, this.mathContext));
 	}
 
 	public DecimalList power(IntList n) {
 		List<BigDecimal> bd = new ArrayList<>();
 		for (int i = 0; i < this.size(); i++) {
-			bd.add(this.value.get(i).pow(n.getAt(i)));
+			bd.add(this.value.get(i).pow(n.getAt(i), this.mathContext));
 		}
 		return new DecimalList(bd, null);
 	}
@@ -312,11 +322,11 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public DecimalList square() {
-		return this.apply(v -> v.multiply(v));
+		return this.apply(v -> v.multiply(v, this.mathContext));
 	}
 
 	public DecimalList squareRoot() {
-		return this.apply(v -> v.sqrt(DEFAULT_MATH_CONTEXT));
+		return this.apply(v -> v.sqrt(this.mathContext));
 	}
 
 	public DecimalList sqrt() {
@@ -543,7 +553,7 @@ public class DecimalList extends DataList<BigDecimal> {
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
-			a[i] = this.value.get(i) == null ? false : this.value.get(i).equals(other.value.get(i));
+			a[i] = this.value.get(i) != null && this.value.get(i).equals(other.value.get(i));
 		}
 
 		return Mask.of(a);
@@ -669,13 +679,13 @@ public class DecimalList extends DataList<BigDecimal> {
 			BigDecimal e = this.value.get(i);
 
 			if (null != e) {
-				v = v.add(e);
+				v = v.add(e, this.mathContext);
 			} else if (skipNans) {
 				continue;
 			} else if (null == nanValue) {
 				return null;
 			} else {
-				v = v.add(nanValue);
+				v = v.add(nanValue, this.mathContext);
 			}
 		}
 
@@ -703,13 +713,13 @@ public class DecimalList extends DataList<BigDecimal> {
 			BigDecimal e = this.value.get(i);
 
 			if (null != e) {
-				v = v.add(e);
+				v = v.multiply(e, this.mathContext);
 			} else if (skipNans) {
 				continue;
 			} else if (null == nanValue) {
 				return null;
 			} else {
-				v = v.add(nanValue);
+				v = v.multiply(nanValue, this.mathContext);
 			}
 		}
 
@@ -759,7 +769,7 @@ public class DecimalList extends DataList<BigDecimal> {
 		if (null == sum) {
 			return null;
 		}
-		return sum.divide(BigDecimal.valueOf(this.size()), DEFAULT_MATH_CONTEXT);
+		return sum.divide(BigDecimal.valueOf(this.size()), this.mathContext);
 	}
 
 	public BigDecimal getSum() {
@@ -813,7 +823,7 @@ public class DecimalList extends DataList<BigDecimal> {
 				min = bd.compareTo(min) < 0 ? bd : min;
 		}
 
-		return max == null || min == null ? null : max.subtract(min);
+		return max == null || min == null ? null : max.subtract(min, this.mathContext);
 	}
 
 	public BigDecimal peakToPeak() {
@@ -838,7 +848,7 @@ public class DecimalList extends DataList<BigDecimal> {
 			if (null == v) {
 				r[i] = null;
 			} else {
-				last = last.add(v);
+				last = last.add(v, this.mathContext);
 				r[i] = last;
 			}
 		}
@@ -859,7 +869,7 @@ public class DecimalList extends DataList<BigDecimal> {
 			if (null == v) {
 				r[i] = null;
 			} else {
-				last = last.multiply(v);
+				last = last.multiply(v, this.mathContext);
 				r[i] = last;
 			}
 		}
@@ -869,14 +879,16 @@ public class DecimalList extends DataList<BigDecimal> {
 
 	public BigDecimal populationVar() {
 		BigDecimal mean = this.mean();
-		return this.value.stream().map(i -> i.subtract(mean).pow(2)).reduce(BigDecimal.ZERO, BigDecimal::add)
+		return this.value.stream().map(i -> i.subtract(mean, this.mathContext).pow(2))
+				.reduce(BigDecimal.ZERO, (a, b) -> a.add(b, this.mathContext))
 				.divide(BigDecimal.valueOf(this.value.size()));
 	}
 
 	public BigDecimal sampleVar() {
 		BigDecimal mean = this.mean();
-		return this.value.stream().map(i -> i.subtract(mean).pow(2)).reduce(BigDecimal.ZERO, BigDecimal::add)
-				.divide(BigDecimal.valueOf(this.value.size() - 1));
+		return this.value.stream().map(i -> i.subtract(mean).pow(2))
+				.reduce(BigDecimal.ZERO, (a, b) -> a.add(b, this.mathContext))
+				.divide(BigDecimal.valueOf(this.value.size() - 1l));
 	}
 
 	private void verifySizeMatch(DecimalList left, DecimalList right) {

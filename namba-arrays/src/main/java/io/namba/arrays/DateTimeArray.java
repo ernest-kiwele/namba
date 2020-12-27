@@ -191,7 +191,8 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 
 	public static DateTimeArray parse(StringList dates, String pattern) {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
-		return new DateTimeArray(dates.apply(s -> LocalDateTime.parse(s, formatter)));
+		return new DateTimeArray(
+				dates.stream().map(s -> LocalDateTime.parse(s, formatter)).collect(Collectors.toList()));
 	}
 
 	public DataList<LocalDate> date() {
@@ -484,6 +485,7 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 	public StringList toIsoTime() {
 		return StringList.of(this.map(DateTimeFormatter.ISO_TIME::format).value);
 	}
+
 	public StringList toIsoDateTime() {
 		return StringList.of(this.map(DateTimeFormatter.ISO_DATE_TIME::format).value);
 	}
@@ -498,7 +500,9 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 	}
 
 	public static void main(String[] args) {
-		System.out.println(DateTimeArray.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
-				LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.MIDNIGHT), 64).plus(Duration.ofDays(5)).format("dd/hh:mm:ssa"));
+		System.out.println(DateTimeArray
+				.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
+						LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.MIDNIGHT), 64)
+				.plus(Duration.ofDays(5)).format("dd/hh:mm:ssa"));
 	}
 }

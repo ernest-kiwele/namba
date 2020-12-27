@@ -55,15 +55,15 @@ public class ListCast {
 	}
 
 	public static DecimalList toDecimal(DoubleList l) {
-		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[0]));
+		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[i]));
 	}
 
 	public static DecimalList toDecimal(IntList l) {
-		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[0]));
+		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[i]));
 	}
 
 	public static DecimalList toDecimal(LongList l) {
-		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[0]));
+		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[i]));
 	}
 
 	public static DoubleList toDouble(DecimalList l) {
@@ -91,14 +91,14 @@ public class ListCast {
 	}
 
 	public static DataList<Integer> boxed(IntList l) {
-		return DataList.of(DataType.INT, l.stream().boxed().toArray(i -> new Integer[0]));
+		return DataList.of(DataType.INT, l.stream().boxed().toArray(i -> new Integer[i]));
 	}
 
 	public static DataList<Long> boxed(LongList l) {
-		return DataList.of(DataType.LONG, l.stream().boxed().toArray(i -> new Long[0]));
+		return DataList.of(DataType.LONG, l.stream().boxed().toArray(i -> new Long[i]));
 	}
 
 	public static DataList<Double> boxed(DoubleList l) {
-		return DataList.of(DataType.DOUBLE, l.stream().boxed().toArray(i -> new Double[0]));
+		return DataList.of(DataType.DOUBLE, l.stream().boxed().toArray(i -> new Double[i]));
 	}
 }
