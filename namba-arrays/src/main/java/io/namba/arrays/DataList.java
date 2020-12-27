@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -132,13 +133,17 @@ public class DataList<T> implements Iterable<T>, NambaList {
 				this.stream().map(v -> v == null ? null : op.apply(v)).collect(Collectors.toList()));
 	}
 
-	public <U> DataList<U> apply(Function<T, U> op) {
-		return this.map(op);
+	public DataList<T> apply(UnaryOperator<T> op) {
+		return this.map(op::apply);
 	}
 
 	// tests
-	public IntList test(Predicate<T> p) {
+	public IntList applyPredicate(Predicate<T> p) {
 		return IntList.of(this.value.stream().mapToInt(v -> p.test(v) ? 1 : 0).toArray());
+	}
+
+	public Mask test(Predicate<T> p) {
+		return Mask.of(this.value.stream().map(v -> p.test(v)).toArray(i -> new Boolean[0]));
 	}
 
 	public int count(Predicate<T> p) {

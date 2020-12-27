@@ -38,4 +38,16 @@ public class LongList {
 	public LongStream stream() {
 		return Arrays.stream(this.value);
 	}
+
+	public DecimalList asDecimal() {
+		return ListCast.toDecimal(this);
+	}
+
+	public DoubleList asDouble() {
+		return ListCast.toDouble(this);
+	}
+
+	public IntList asInt() {
+		return ListCast.toInt(this);
+	}
 }

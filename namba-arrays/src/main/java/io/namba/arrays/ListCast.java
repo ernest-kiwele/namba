@@ -15,6 +15,7 @@
 
 package io.namba.arrays;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.function.ToDoubleFunction;
 import java.util.function.ToIntFunction;
@@ -51,6 +52,30 @@ public class ListCast {
 
 	public static IntList toInt(DoubleList l) {
 		return IntList.of(Arrays.stream(l.value).mapToInt(i -> (int) i).toArray());
+	}
+
+	public static DecimalList toDecimal(DoubleList l) {
+		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[0]));
+	}
+
+	public static DecimalList toDecimal(IntList l) {
+		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[0]));
+	}
+
+	public static DecimalList toDecimal(LongList l) {
+		return DecimalList.of(l.stream().mapToObj(BigDecimal::valueOf).toArray(i -> new BigDecimal[0]));
+	}
+
+	public static DoubleList toDouble(DecimalList l) {
+		return DoubleList.of(l.stream().mapToDouble(BigDecimal::doubleValue).toArray());
+	}
+
+	public static LongList toLong(DecimalList l) {
+		return LongList.of(l.stream().mapToLong(BigDecimal::longValue).toArray());
+	}
+
+	public static IntList toInt(DecimalList l) {
+		return IntList.of(l.stream().mapToInt(BigDecimal::intValue).toArray());
 	}
 
 	public static <T> DoubleList toDouble(DataList<T> l, ToDoubleFunction<T> func) {

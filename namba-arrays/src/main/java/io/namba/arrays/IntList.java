@@ -100,6 +100,7 @@ public class IntList implements NambaList {
 		return this.getAt(this.index.getByKey(key));
 	}
 
+	@Override
 	public Index getIndex() {
 		return index;
 	}
@@ -864,6 +865,10 @@ public class IntList implements NambaList {
 
 	public DoubleList asDouble() {
 		return ListCast.toDouble(this);
+	}
+	
+	public DecimalList asDecimal() {
+		return ListCast.toDecimal(this);
 	}
 
 	public DataList<Integer> boxed() {

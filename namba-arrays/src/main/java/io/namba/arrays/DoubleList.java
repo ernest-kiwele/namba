@@ -94,6 +94,10 @@ public class DoubleList implements NambaList {
 	public IntList asInt() {
 		return ListCast.toInt(this);
 	}
+	
+	public DecimalList asDecimal() {
+		return ListCast.toDecimal(this);
+	}
 
 	public LongList asLong() {
 		return ListCast.toLong(this);

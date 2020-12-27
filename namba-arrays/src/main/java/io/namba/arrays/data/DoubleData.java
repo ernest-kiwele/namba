@@ -52,7 +52,7 @@ public class DoubleData {
 		return a;
 	}
 
-	public DoubleList of(int size, int value) {
+	public DoubleList of(int size, double value) {
 		return DoubleList.of(this.arrayOf(size, value));
 	}
 
@@ -155,12 +155,12 @@ public class DoubleData {
 		return DoubleList.of(this.randomArray(seed, size));
 	}
 
-	public double[] randomArray(long seed, int size, int from, int to) {
+	public double[] randomArray(long seed, int size, double from, double to) {
 		Random r = new Random(seed);
 		return r.doubles(size, from, to).toArray();
 	}
 
-	public DoubleList random(long seed, int size, int from, int to) {
+	public DoubleList random(long seed, int size, double from, double to) {
 		return DoubleList.of(this.randomArray(seed, size, from, to));
 	}
 
@@ -191,7 +191,7 @@ public class DoubleData {
 		return a;
 	}
 
-	public DoubleList randomNormal(int size, int mean, int std) {
+	public DoubleList randomNormal(int size, double mean, double std) {
 		return DoubleList.of(this.randomNormalArray(size, mean, std));
 	}
 

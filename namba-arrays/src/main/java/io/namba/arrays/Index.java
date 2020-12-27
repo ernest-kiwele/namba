@@ -61,6 +61,18 @@ public class Index {
 		return new Index(levels);
 	}
 	
+	public static <T> Index objectIndex(List<T> values, Function<T, Object> indexer) {
+		List<IndexLevel> levels= IntStream.range(0, values.size()).mapToObj(i -> Pair.of(indexer.apply(values.get(i)), i))
+				.collect(Collectors.groupingBy(Pair::getLeft, Collectors.mapping(Pair::getRight, Collectors
+						.collectingAndThen(Collectors.toList(), list -> list.stream().mapToInt(i -> i).toArray()))))
+				.entrySet()
+				.stream()
+				.map(entry -> IndexLevel.of(entry.getKey(), entry.getValue()))
+				.collect(Collectors.toList());
+		
+		return new Index(levels);
+	}
+	
 	public int getSize() {
 		return this.keyMap.size();
 	}

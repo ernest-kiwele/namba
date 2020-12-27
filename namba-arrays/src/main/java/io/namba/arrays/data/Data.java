@@ -24,6 +24,7 @@ public class Data {
 
 	public final IntData ints = IntData.instance();
 	public final DoubleData doubles = DoubleData.instance();
+	public final DecimalData decimals = DecimalData.instance();
 
 	private Data() {
 	}
