@@ -847,6 +847,14 @@ public class IntList implements NambaList {
 		double mean = this.getMean();
 		return Arrays.stream(this.value).mapToDouble(i -> Math.pow(i - mean, 2)).sum() / (this.value.length - 1.0);
 	}
+	
+	public double std() {
+		return Math.sqrt(this.populationVar());
+	}
+
+	public double sampleStd() {
+		return Math.sqrt(this.sampleVar());
+	}
 
 	public Collection<Integer> values() {
 		return Arrays.stream(value).boxed().collect(Collectors.toList());

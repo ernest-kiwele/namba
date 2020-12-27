@@ -703,7 +703,16 @@ public class DecimalList extends DataList<BigDecimal> {
 		BigDecimal mean = this.mean();
 		return this.value.stream().map(i -> i.subtract(mean).pow(2))
 				.reduce(BigDecimal.ZERO, (a, b) -> a.add(b, this.mathContext))
-				.divide(BigDecimal.valueOf(this.value.size() - 1l));
+				.divide(BigDecimal.valueOf(this.value.size() - 1l), this.mathContext);
+	}
+
+	// population std
+	public BigDecimal std() {
+		return this.populationVar().sqrt(this.mathContext);
+	}
+
+	public BigDecimal sampleStd() {
+		return this.sampleVar().sqrt(this.mathContext);
 	}
 
 	private void verifySizeMatch(DecimalList left, DecimalList right) {
