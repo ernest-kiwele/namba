@@ -16,6 +16,8 @@
 package io.namba.functions;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 
 import io.namba.arrays.DecimalList;
 
@@ -53,5 +55,14 @@ public class NambaMath {
 
 	public static BigDecimal mean(BigDecimal bd1, BigDecimal bd2) {
 		return bd1.add(bd2).divide(BigDecimal.valueOf(2), DecimalList.DEFAULT_MATH_CONTEXT);
+	}
+
+	// TODO: cache these MathContext objects?
+	public static BigDecimal round(BigDecimal bd, int to) {
+		if (to >= 0) {
+			return bd.setScale(to, RoundingMode.HALF_UP);
+		} else {
+			return bd.round(new MathContext(bd.precision() + to));
+		}
 	}
 }

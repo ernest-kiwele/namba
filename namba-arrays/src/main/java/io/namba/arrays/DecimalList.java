@@ -40,7 +40,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import io.namba.Namba;
 import io.namba.arrays.data.IndexedObject;
-import io.namba.arrays.data.tuple.Two;
+import io.namba.arrays.data.IntData;
 import io.namba.arrays.range.IntRange;
 import io.namba.functions.DecimalRef;
 import io.namba.functions.DecimalRef.DecimalPredicate;
@@ -1335,23 +1335,24 @@ public class DecimalList extends DataList<BigDecimal> {
 	/*
 	 * Return value at the given quantile.
 	 */
-	public BigDecimal quantile(BigDecimal quantile) {
-		/*
-		 * This optional parameter specifies the interpolation method to use, when the
-		 * desired quantile lies between two data points i and j:
-		 * 
-		 * linear: i + (j - i) * fraction, where fraction is the fractional part of the
-		 * index surrounded by i and j.
-		 * 
-		 * lower: i.
-		 * 
-		 * higher: j.
-		 * 
-		 * nearest: i or j whichever is nearest.
-		 * 
-		 * midpoint: (i + j) / 2.
-		 */
-	}
+	// TODO: implement quantile
+	// public BigDecimal quantile(BigDecimal quantile) {
+	/*
+	 * This optional parameter specifies the interpolation method to use, when the
+	 * desired quantile lies between two data points i and j:
+	 * 
+	 * linear: i + (j - i) * fraction, where fraction is the fractional part of the
+	 * index surrounded by i and j.
+	 * 
+	 * lower: i.
+	 * 
+	 * higher: j.
+	 * 
+	 * nearest: i or j whichever is nearest.
+	 * 
+	 * midpoint: (i + j) / 2.
+	 */
+	// }
 
 	/*
 	 * Compute numerical data ranks (1 through n) along axis.
@@ -1359,35 +1360,51 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * By default, equal values are assigned a rank that is the average of the ranks
 	 * of those values.
 	 */
-	public IntList rank() {
-		/*
-		 * How to rank the group of records that have the same value (i.e. ties):
-		 * 
-		 * average: average rank of the group
-		 * 
-		 * min: lowest rank in the group
-		 * 
-		 * max: highest rank in the group
-		 * 
-		 * first: ranks assigned in order they appear in the array
-		 * 
-		 * dense: like ‘min’, but rank always increases by 1 between groups.
-		 */
-	}
+	// TODO: Implement rank()
+	// public IntList rank() {
+	/*
+	 * How to rank the group of records that have the same value (i.e. ties):
+	 * 
+	 * average: average rank of the group
+	 * 
+	 * min: lowest rank in the group
+	 * 
+	 * max: highest rank in the group
+	 * 
+	 * first: ranks assigned in order they appear in the array
+	 * 
+	 * dense: like ‘min’, but rank always increases by 1 between groups.
+	 */
+	// }
 
 	/*
 	 * Needs to be defined with window objects.
 	 */
-	public Map<Two<BigDecimal, BigDecimal>, DecimalList> rolling() {
-
-	}
+	// TODO: Implement Rolling
+	// public Map<Two<BigDecimal, BigDecimal>, DecimalList> rolling() {
+	//
+	// }
 
 	public DecimalList round(int decimals) {
+		BigDecimal[] v = new BigDecimal[this.size()];
 
+		for (int i = 0; i < v.length; i++) {
+			BigDecimal val = this.value.get(i);
+			v[i] = null == val ? null : NambaMath.round(val, decimals);
+		}
+
+		return DecimalList.of(v);
 	}
 
 	public DecimalList round(IntList decimals) {
+		BigDecimal[] v = new BigDecimal[this.size()];
 
+		for (int i = 0; i < v.length; i++) {
+			BigDecimal val = this.value.get(i);
+			v[i] = null == val ? null : NambaMath.round(val, decimals.getAt(i));
+		}
+
+		return DecimalList.of(v);
 	}
 
 	public DecimalList sample(double fraction) {
@@ -1395,10 +1412,11 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public DecimalList sample(int size) {
-
+		return this.getAt(IntData.instance().randomArray(size, 0, this.size()));
 	}
 
-	public DecimalList sample(int size, int randomState) {
+	public DecimalList sample(int size, long randomState) {
+		return this.getAt(IntData.instance().randomArray(randomState, size, 0, this.size()));
 	}
 
 	/*
@@ -1406,9 +1424,10 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * 
 	 * Normalized by N-1 by default. This can be changed using the ddof argument
 	 */
-	public BigDecimal meanStandardError() {
-
-	}
+	// TODO: Implement
+	// public BigDecimal meanStandardError() {
+	//
+	// }
 
 	/*
 	 * Shift index by desired number of periods with an optional time freq.
@@ -1429,9 +1448,10 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * 
 	 * Normalized by N-1.
 	 */
-	public BigDecimal skew() {
-
-	}
+	// TODO: Implement skew()
+	// public BigDecimal skew() {
+	//
+	// }
 
 	/*
 	 * Sort Series by index labels.
@@ -1439,12 +1459,25 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * Returns a new Series sorted by label if inplace argument is False, otherwise
 	 * updates the original series and returns None.
 	 */
-	public DecimalList sortIndex() {
-
-	}
+	// TODO: Implement
+	// public DecimalList sortIndex() {
+	//
+	// }
 
 	public DecimalList sorted(boolean descending, boolean naFirst) {
+		List<BigDecimal> v = new ArrayList<>(this.value);
 
+		Comparator<BigDecimal> comparator = descending ? Comparator.reverseOrder() : Comparator.naturalOrder();
+
+		if (naFirst) {
+			comparator = Comparator.nullsFirst(comparator);
+		} else {
+			comparator = Comparator.nullsLast(comparator);
+		}
+
+		v.sort(comparator);
+
+		return DecimalList.of(v, null);
 	}
 
 	public DecimalList sorted() {
@@ -1452,7 +1485,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public DecimalList where(Mask mask) {
-
+		return this.getAt(mask);
 	}
 
 	@Override
