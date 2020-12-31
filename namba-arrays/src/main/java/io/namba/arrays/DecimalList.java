@@ -1385,23 +1385,23 @@ public class DecimalList extends DataList<BigDecimal> {
 	//
 	// }
 
-	public DecimalList round(int decimals) {
+	public DecimalList roundTo(int decimals) {
 		BigDecimal[] v = new BigDecimal[this.size()];
 
 		for (int i = 0; i < v.length; i++) {
 			BigDecimal val = this.value.get(i);
-			v[i] = null == val ? null : NambaMath.round(val, decimals);
+			v[i] = null == val ? null : NambaMath.truncate(val, decimals);
 		}
 
 		return DecimalList.of(v);
 	}
 
-	public DecimalList round(IntList decimals) {
+	public DecimalList roundTo(IntList decimals) {
 		BigDecimal[] v = new BigDecimal[this.size()];
 
 		for (int i = 0; i < v.length; i++) {
 			BigDecimal val = this.value.get(i);
-			v[i] = null == val ? null : NambaMath.round(val, decimals.getAt(i));
+			v[i] = null == val ? null : NambaMath.truncate(val, decimals.getAt(i));
 		}
 
 		return DecimalList.of(v);
@@ -1490,7 +1490,8 @@ public class DecimalList extends DataList<BigDecimal> {
 
 	@Override
 	public StringList string() {
-		return StringList.of(this.value.stream().map(Object::toString).collect(Collectors.toList()));
+		return StringList
+				.of(this.value.stream().map(o -> o == null ? null : o.toString()).collect(Collectors.toList()));
 	}
 
 	public class IndexAccessor {
@@ -1510,11 +1511,13 @@ public class DecimalList extends DataList<BigDecimal> {
 	public static void main(String[] args) {
 		Namba nb = Namba.instance();
 
-		DecimalList rr = nb.data.decimals.random(1, 20, 20.0, 300.0);
-		System.out.println(rr);
-		System.out.println(rr.argmin());
-		System.out.println(rr.sum());
-		System.out.println(rr.mean());
-		System.out.println(rr.mean().multiply(BigDecimal.valueOf(20)));
+		DecimalList rr = nb.data.decimals.random(1, 10, 2.0, 3025.0);
+		System.out.println(rr.asDouble());
+		System.out.println();
+		System.out.println(rr.roundTo(-1).asDouble());
+		System.out.println(rr.roundTo(2).asDouble());
+		System.out.println();
+		System.out.println(rr.roundTo(4).asDouble());
+		System.out.println(rr.roundTo(1).asDouble());
 	}
 }

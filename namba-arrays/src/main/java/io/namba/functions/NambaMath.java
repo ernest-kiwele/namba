@@ -58,11 +58,14 @@ public class NambaMath {
 	}
 
 	// TODO: cache these MathContext objects?
-	public static BigDecimal round(BigDecimal bd, int to) {
+	public static BigDecimal truncate(BigDecimal bd, int to) {
 		if (to >= 0) {
 			return bd.setScale(to, RoundingMode.HALF_UP);
 		} else {
-			return bd.round(new MathContext(bd.precision() + to));
+			BigDecimal tmp = bd.setScale(0, RoundingMode.HALF_UP);
+			int precision = tmp.precision();
+
+			return to + precision <= 0 ? BigDecimal.ZERO : tmp.round(new MathContext(precision + to));// ? 0 : precision
 		}
 	}
 }
