@@ -227,6 +227,12 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 		return IntList.of(this.value.stream().mapToInt(LocalDateTime::getDayOfMonth).toArray());
 	}
 
+	public StringList dayName() {
+	}
+
+	public StringList dayName(String locale) {
+	}
+
 	public IntList hour() {
 		return IntList.of(this.value.stream().mapToInt(LocalDateTime::getHour).toArray());
 	}
@@ -275,6 +281,14 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 		}
 
 		return Mask.of(a);
+	}
+
+	public DateTimeArray ceilTo(String precision) {
+		return this.ceilTo(
+				ChronoUnit.valueOf(Objects.requireNonNull(precision, "precision cannot be null").toUpperCase()));
+	}
+
+	public DateTimeArray ceilTo(ChronoUnit precision) {
 	}
 
 	public DateTimeArray truncateTo(String precision) {
@@ -498,6 +512,61 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
 		return StringList.of(this.map(formatter::format).value);
 	}
+
+	/*
+	 * Return a Dataframe of the components of the Timedeltas (a DF with columns
+	 * like days hours minutes seconds milliseconds microseconds nanoseconds).
+	 */
+	public Table components() {
+
+	}
+
+	public IntList daysInMonth() {
+
+	}
+
+	public Mask isMonthEnd() {
+
+	}
+
+	public Mask isMonthStart() {
+
+	}
+
+	public Mask isQuarterStart() {
+
+	}
+
+	public Mask isQuarterEnd() {
+
+	}
+
+	public Mask isYearStart() {
+
+	}
+
+	public Mask isYearEnd() {
+
+	}
+
+	/*
+	 * Select final periods of time series data based on a date offset.
+	 * 
+	 * When having a DataFrame with dates as index, this function can select the
+	 * last few rows based on a date offset.
+	 */
+	public DateTimeArray last(LocalDateTime offset) {
+
+	}
+
+	public DateTimeArray shift(ChronoUnit unit, long value) {
+
+	}
+
+	public DateTimeArray shift(ChronoUnit unit) {
+		return this.shift(unit, 1L);
+	}
+	
 
 	public static void main(String[] args) {
 		System.out.println(DateTimeArray

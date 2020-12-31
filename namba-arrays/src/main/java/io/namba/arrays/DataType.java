@@ -20,11 +20,15 @@ import java.math.BigInteger;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * 
  * @author Ernest Kiwele
- *
  */
 public enum DataType {
 
@@ -40,6 +44,8 @@ public enum DataType {
 
 	STRING("string", "String", "String", String.class),
 
+	CATEGORY("category", "Category", "Enumeration-like", String.class),
+
 	DATE("date", "Date", "System-local date", LocalDate.class),
 
 	TIME("time", "Time", "System-local time", Time.class),
@@ -48,7 +54,11 @@ public enum DataType {
 
 	INSTANT("instant", "Instant", "UTC instant", java.time.Instant.class),
 
+	BOOLEAN("boolean", "Boolean", "Boolean", boolean.class),
+
 	OBJECT("object", "Object", "Arbitrary user-defined element type", Object.class);
+
+	private static final Map<String, DataType> mapping = new ConcurrentHashMap<>();
 
 	private final String key;
 	private final String displayName;
@@ -76,6 +86,11 @@ public enum DataType {
 
 	public Class<?> getJavaType() {
 		return javaType;
+	}
+
+	public static DataType of(String name) {
+		return mapping.computeIfAbsent(name, n -> Arrays.stream(values())
+				.filter(v -> StringUtils.equalsIgnoreCase(v.key, n)).findAny().orElse(null));
 	}
 
 	@Override

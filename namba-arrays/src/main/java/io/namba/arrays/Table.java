@@ -15,6 +15,7 @@
 
 package io.namba.arrays;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -116,6 +117,14 @@ public class Table implements NambaList {
 		return this.tail(SUMMARY_SIZE);
 	}
 
+	public Object at(Object row, String column) {
+
+	}
+
+	public Object iat(int row, int column) {
+
+	}
+
 	@Override
 	public NambaList repeat(int n) {
 		return Table.of(this.columns.stream().map(c -> c.repeat(n)).collect(Collectors.toList()), null);
@@ -133,9 +142,7 @@ public class Table implements NambaList {
 	public StringList string() {
 		List<StringList> strings = Stream
 				.of(Stream.<NambaList>of(Namba.instance().data.ints.range(this.size)), this.columns.stream())
-				.flatMap(Function.identity())
-				.map(NambaList::string)
-				.map(StringList::leftPadToMaxLength)
+				.flatMap(Function.identity()).map(NambaList::string).map(StringList::leftPadToMaxLength)
 				.collect(Collectors.toList());
 
 		return StringList.of(IntStream.range(0, this.size())

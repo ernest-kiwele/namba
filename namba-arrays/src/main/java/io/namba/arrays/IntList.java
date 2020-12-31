@@ -34,6 +34,8 @@ import java.util.stream.IntStream;
 import io.namba.Namba;
 import io.namba.arrays.data.IntPair;
 import io.namba.arrays.range.IntRange;
+import io.namba.functions.IntRef;
+import io.namba.functions.IntRef.IntListPredicate;
 
 /**
  * 
@@ -121,9 +123,17 @@ public class IntList implements NambaList {
 				.map(i -> this.value[i]).toArray());
 	}
 
+	public IntList getAt(Mask mask) {
+		return this.getAt(mask.truthy().value);
+	}
+
 	@Override
 	public IntList getAt(int[] is) {
 		return getAt(Arrays.stream(is));
+	}
+
+	public IntRef where(IntListPredicate p) {
+		return IntRef.where(p, this);
 	}
 
 	public IntList take(int size) {
@@ -666,6 +676,14 @@ public class IntList implements NambaList {
 		return Mask.of(a);
 	}
 
+	public Mask even() {
+		return this.where(i -> i.mod(2).eq(0)).mask();
+	}
+
+	public Mask odd() {
+		return this.where(i -> i.mod(2).eq(1)).mask();
+	}
+
 	public Mask ge(IntList other) {
 		this.verifySizeMatch(this, other);
 
@@ -847,7 +865,7 @@ public class IntList implements NambaList {
 		double mean = this.getMean();
 		return Arrays.stream(this.value).mapToDouble(i -> Math.pow(i - mean, 2)).sum() / (this.value.length - 1.0);
 	}
-	
+
 	public double std() {
 		return Math.sqrt(this.populationVar());
 	}
@@ -874,7 +892,7 @@ public class IntList implements NambaList {
 	public DoubleList asDouble() {
 		return ListCast.toDouble(this);
 	}
-	
+
 	public DecimalList asDecimal() {
 		return ListCast.toDecimal(this);
 	}
@@ -992,8 +1010,10 @@ public class IntList implements NambaList {
 	public static void main(String[] args) {
 		Namba nb = Namba.instance();
 
-		IntList rr = nb.data.ints.range(1, 10).repeat(2);
-		System.out.println(rr);
-		System.out.println(rr.argmin());
+		IntList rr = nb.data.ints.range(1, 100).repeat(2);
+
+		long s = System.currentTimeMillis();
+		System.out.println(rr.where(i -> i.lt(7)).gt(2).odd().list());
+		System.out.println(System.currentTimeMillis() - s);
 	}
 }

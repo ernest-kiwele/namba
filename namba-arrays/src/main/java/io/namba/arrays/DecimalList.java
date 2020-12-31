@@ -20,6 +20,7 @@ import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -29,14 +30,22 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import io.namba.Namba;
+import io.namba.arrays.data.IndexedObject;
+import io.namba.arrays.data.tuple.Two;
 import io.namba.arrays.range.IntRange;
+import io.namba.functions.DecimalRef;
+import io.namba.functions.DecimalRef.DecimalPredicate;
+import io.namba.functions.DecimalTest;
+import io.namba.functions.NambaMath;
 
 /**
  * 
@@ -112,9 +121,13 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	// accessors
-	private DecimalList getAt(IntStream stream) {
+	public DecimalList getAt(IntStream stream) {
 		return DecimalList.of(Objects.requireNonNull(stream).filter(i -> i >= 0 && i < this.value.size())
 				.mapToObj(this.value::get).toArray(i -> new BigDecimal[i]));
+	}
+
+	public DecimalList getAt(Mask mask) {
+		return getAt(mask.truthy().value);
 	}
 
 	@Override
@@ -484,6 +497,10 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	public DecimalRef where(DecimalPredicate p) {
+		return DecimalRef.where(p, this);
+	}
+
 	// Reduction
 	public BigDecimal sum(boolean skipNans, BigDecimal nanValue) {
 		if (this.value.isEmpty())
@@ -650,48 +667,6 @@ public class DecimalList extends DataList<BigDecimal> {
 				.collect(Collectors.toList()));
 	}
 
-	public DecimalList cumSum() {
-		if (this.value.isEmpty()) {
-			return new DecimalList(Collections.emptyList());
-		}
-
-		BigDecimal[] r = new BigDecimal[this.value.size()];
-		BigDecimal last = BigDecimal.ZERO;
-
-		for (int i = 0; i < this.value.size(); i++) {
-			BigDecimal v = this.value.get(i);
-			if (null == v) {
-				r[i] = null;
-			} else {
-				last = last.add(v, this.mathContext);
-				r[i] = last;
-			}
-		}
-
-		return DecimalList.of(r);
-	}
-
-	public DecimalList cumProd() {
-		if (this.value.isEmpty()) {
-			return new DecimalList(Collections.emptyList());
-		}
-
-		BigDecimal[] r = new BigDecimal[this.value.size()];
-		BigDecimal last = BigDecimal.ONE;
-
-		for (int i = 0; i < this.value.size(); i++) {
-			BigDecimal v = this.value.get(i);
-			if (null == v) {
-				r[i] = null;
-			} else {
-				last = last.multiply(v, this.mathContext);
-				r[i] = last;
-			}
-		}
-
-		return DecimalList.of(r);
-	}
-
 	public BigDecimal populationVar() {
 		BigDecimal mean = this.mean();
 		return this.value.stream().map(i -> i.subtract(mean, this.mathContext).pow(2))
@@ -774,6 +749,710 @@ public class DecimalList extends DataList<BigDecimal> {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Counts non-null elements
+	 * 
+	 * @return
+	 */
+	public int count() {
+		return (int) this.stream().filter(Objects::nonNull).count();
+	}
+
+	public DecimalList distinct() {
+		return new DecimalList(this.stream().distinct().collect(Collectors.toList()));
+	}
+
+	public DecimalList unique() {
+		return this.distinct();
+	}
+
+	public DecimalList dropDuplicates() {
+		return this.dropDuplicates(false);
+	}
+
+	public DecimalList dropDuplicates(boolean keepLast) {
+		List<BigDecimal> data = (keepLast ? this.reverseStream() : this.stream()).distinct()
+				.collect(Collectors.toList());
+		if (keepLast) {
+			List<BigDecimal> ordered = new ArrayList<>();
+
+			for (BigDecimal bd : data) {
+				ordered.add(0, bd);
+			}
+
+			data = ordered;
+		}
+		return new DecimalList(data);
+	}
+
+	// TODO: look into storing a "sorted" flag with corresponding order.
+	public DecimalList nLargest(int n) {
+		List<BigDecimal> copy = new ArrayList<>(this.value);
+		copy.sort(Comparator.reverseOrder());
+		return DecimalList.of(copy.subList(0, n), null);
+	}
+
+	public DecimalList nSmallest(int n) {
+		List<BigDecimal> copy = new ArrayList<>(this.value);
+		copy.sort(Comparator.naturalOrder());
+		return DecimalList.of(copy.subList(0, n), null);
+	}
+
+	public int nUnique() {
+		return (int) this.value.stream().distinct().count();
+	}
+
+	public BigDecimal[] toArray() {
+		return this.value.toArray(i -> new BigDecimal[i]);
+	}
+
+	public BigDecimal agg(BinaryOperator<BigDecimal> reducer) {
+		return this.value.stream().reduce(reducer).orElse(null);
+	}
+
+	public BigDecimal aggregate(BinaryOperator<BigDecimal> reducer) {
+		return this.agg(reducer);
+	}
+
+	public BigDecimal agg(BigDecimal identity, BinaryOperator<BigDecimal> reducer) {
+		return this.value.stream().reduce(identity, reducer);
+	}
+
+	public BigDecimal aggregate(BigDecimal identity, BinaryOperator<BigDecimal> reducer) {
+		return this.agg(identity, reducer);
+	}
+
+	public Mask test(DecimalTest test) {
+		return test.test(this);
+	}
+
+	public boolean all(DecimalTest test) {
+		return test.all(this);
+	}
+
+	public boolean any(DecimalTest test) {
+		return test.any(this);
+	}
+
+	// Concatenate two or more Series.
+	public DecimalList concat(DecimalList other) {
+		List<BigDecimal> all = new ArrayList<>(this.value);
+		all.addAll(other.value);
+
+		return DecimalList.of(all, null);
+	}
+
+	public DecimalList append(DecimalList other) {
+		return this.concat(other);
+	}
+
+	/*
+	 * Return the integer indices that would sort the Series values.
+	 * 
+	 * Override ndarray.argsort. Argsorts the value, omitting NA/null values, and
+	 * places the result in the same locations as the non-NA values.
+	 */
+	public IntList argSort() {
+		return IntList.of(IntStream.range(0, this.size()).mapToObj(i -> IndexedObject.of(i, this.value.get(i)))
+				.sorted(Comparator.comparing(IndexedObject::value)).mapToInt(IndexedObject::index).toArray());
+	}
+
+	public IntList argSortReversed() {
+		return IntList.of(IntStream.range(0, this.size()).mapToObj(i -> IndexedObject.of(i, this.value.get(i)))
+				.sorted(Comparator.comparing(IndexedObject<BigDecimal>::value).reversed())
+				.mapToInt(IndexedObject::index).toArray());
+	}
+
+	/*
+	 * Compute the lag-N autocorrelation.
+	 * 
+	 * This method computes the Pearson correlation between the Series and its
+	 * shifted self.
+	 */
+	public BigDecimal autoCorrelation(int shifts) {
+		return this.correlation(this.shift(shifts));
+	}
+
+	public BigDecimal autoCorr(int shifts) {
+		return this.autoCorrelation(shifts);
+	}
+
+	/*
+	 * Synonym for DataFrame.fillna() with method='bfill'.
+	 */
+	public DecimalList backFill() {
+
+		BigDecimal[] v = new BigDecimal[this.size()];
+
+		BigDecimal lastValid = null;
+		for (int i = v.length - 1; i >= 0; i--) {
+			BigDecimal val = this.value.get(i);
+
+			if (null != val) {
+				lastValid = this.value.get(i);
+			} else if (lastValid != null) {
+				val = lastValid;
+			}
+
+			v[i] = val;
+		}
+
+		return of(v);
+	}
+
+	public DecimalList forwardFill() {
+
+		BigDecimal[] v = new BigDecimal[this.size()];
+
+		BigDecimal lastValid = null;
+		for (int i = 0; i < v.length; i++) {
+			BigDecimal val = this.value.get(i);
+
+			if (null != val) {
+				lastValid = this.value.get(i);
+			} else if (lastValid != null) {
+				val = lastValid;
+			}
+
+			v[i] = val;
+		}
+
+		return of(v);
+	}
+
+	/*
+	 * Fill NA/NaN values using the specified method.
+	 * 
+	 * method : {‘backfill’, ‘bfill’, ‘pad’, ‘ffill’, None}, default None
+	 */
+	public DecimalList fillNa(BigDecimal bd) {
+
+		Objects.requireNonNull(bd, "fill value may not be null");
+
+		BigDecimal[] v = new BigDecimal[this.size()];
+
+		for (int i = 0; i < v.length; i++) {
+			BigDecimal val = this.value.get(i);
+			if (null == val) {
+				v[i] = bd;
+			} else {
+				v[i] = val;
+			}
+		}
+
+		return of(v);
+	}
+
+	// public DecimalList filter(Object... rowLabels) {
+	//
+	// }
+
+	/*
+	 * Return boolean Series equivalent to left <= series <= right.
+	 * 
+	 * This function returns a boolean vector containing True wherever the
+	 * corresponding Series element is between the boundary values left and right.
+	 * NA values are treated as False.
+	 */
+	public Mask between(BigDecimal low, BigDecimal high) {
+		boolean[] b = new boolean[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			BigDecimal bd = this.value.get(i);
+			b[i] = low.compareTo(bd) <= 0 && high.compareTo(bd) >= 0;
+		}
+
+		return Mask.of(b);
+	}
+
+	/*
+	 * Trim values at input threshold(s).
+	 * 
+	 * Assigns values outside boundary to boundary values. Thresholds can be
+	 * singular values or array like, and in the latter case the clipping is
+	 * performed element-wise in the specified axis.
+	 */
+	public DecimalList clipToBoundaries(BigDecimal low, BigDecimal high) {
+		BigDecimal[] b = new BigDecimal[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			BigDecimal bd = this.value.get(i);
+			b[i] = NambaMath.max(low, NambaMath.min(high, bd));
+		}
+
+		return of(b);
+	}
+
+	/*
+	 * Combine the Series with a Series or scalar according to func.
+	 * 
+	 * Combine the Series and other using func to perform elementwise selection for
+	 * combined Series. fill_value is assumed when value is missing at some index
+	 * from one of the two objects being combined.
+	 */
+	public DecimalList combine(DecimalList other, BinaryOperator<BigDecimal> combiner) {
+		return this.zip(other, combiner);
+	}
+
+	/*
+	 * Combine Series values, choosing the calling Series’s values first.
+	 * 
+	 * (kinda like nvl)
+	 */
+	public DecimalList combineFirst(DecimalList other) {
+		return this.zip(other, NambaMath::firstNonNull);
+	}
+
+	/*
+	 * Compare to another Series and show the differences.
+	 * 
+	 */
+	public Table compare(DecimalList other) {
+		Mask nonEqual = this.ne(other);
+
+		return Table.of(Arrays.asList(this.getAt(nonEqual), other.getAt(nonEqual)), null);
+	}
+
+	public BigDecimal correlation(DecimalList other) {
+
+		DecimalList thisMeanDiff = this.minus(this.mean());
+		DecimalList otherMeanDiff = other.minus(other.mean());
+
+		BigDecimal a = thisMeanDiff.multiply(otherMeanDiff).sum();
+		BigDecimal b = thisMeanDiff.square().sum().multiply(otherMeanDiff.square().sum()).sqrt(DEFAULT_MATH_CONTEXT);
+
+		return a.divide(b, DEFAULT_MATH_CONTEXT);
+	}
+
+	public BigDecimal corr(DecimalList other) {
+		return this.correlation(other);
+	}
+
+	// public BigDecimal covariance(DecimalList other) {
+	//
+	// }
+	//
+	// public BigDecimal cov(DecimalList other) {
+	// return this.covariance(other);
+	// }
+
+	public DecimalList cumSum() {
+		if (this.value.isEmpty()) {
+			return new DecimalList(Collections.emptyList());
+		}
+
+		BigDecimal[] r = new BigDecimal[this.value.size()];
+		BigDecimal last = BigDecimal.ZERO;
+
+		for (int i = 0; i < this.value.size(); i++) {
+			BigDecimal v = this.value.get(i);
+			if (null == v) {
+				r[i] = null;
+			} else {
+				last = last.add(v, this.mathContext);
+				r[i] = last;
+			}
+		}
+
+		return DecimalList.of(r);
+	}
+
+	public DecimalList cumProd() {
+		if (this.value.isEmpty()) {
+			return new DecimalList(Collections.emptyList());
+		}
+
+		BigDecimal[] r = new BigDecimal[this.value.size()];
+		BigDecimal last = BigDecimal.ONE;
+
+		for (int i = 0; i < this.value.size(); i++) {
+			BigDecimal v = this.value.get(i);
+			if (null == v) {
+				r[i] = null;
+			} else {
+				last = last.multiply(v, this.mathContext);
+				r[i] = last;
+			}
+		}
+
+		return DecimalList.of(r);
+	}
+
+	public DecimalList cumMax() {
+		BigDecimal[] v = new BigDecimal[this.size()];
+
+		BigDecimal val = null;
+		for (int i = 0; i < v.length; i++) {
+			val = NambaMath.max(value.get(i), val);
+			v[i] = val;
+		}
+
+		return of(v);
+	}
+
+	public DecimalList cumMin() {
+		BigDecimal[] v = new BigDecimal[this.size()];
+
+		BigDecimal val = null;
+		for (int i = 0; i < v.length; i++) {
+			val = NambaMath.min(value.get(i), val);
+			v[i] = val;
+		}
+
+		return of(v);
+	}
+
+	/*
+	 * count 3.0 mean 2.0 std 1.0 min 1.0 25% 1.5 50% 2.0 75% 2.5 max 3.0 dtype:
+	 * float64
+	 */
+	// TODO: Implement
+	public DecimalList describe() {
+		return null;
+	}
+
+	/*
+	 * First discrete difference of element.
+	 * 
+	 * Calculates the difference of a Series element compared with another element
+	 * in the Series (default is element in previous row).
+	 */
+	// TODO: implement
+	public DecimalList diff() {
+		return null;
+	}
+
+	/*
+	 * Return a new Series with missing values removed.
+	 * 
+	 * See the User Guide for more on which values are considered missing, and how
+	 * to work with missing data.
+	 */
+	public DecimalList dropNa() {
+		return this.getAt(this.isNa().negate());
+	}
+
+	// TODO: Overload this
+	// public Grouping groupBy(Function<BigDecimal, Object> classifier) {
+	//
+	// }
+
+	public DecimalList head() {
+		return getAt(IntRange.of(SUMMARY_SIZE));
+	}
+
+	public DecimalList head(int n) {
+		return getAt(IntRange.of(n));
+	}
+
+	public DecimalList tail() {
+		return getAt(IntRange.of(this.size() - SUMMARY_SIZE, this.size()));
+	}
+
+	public DecimalList tail(int n) {
+		return getAt(IntRange.of(this.size() - n, this.size()));
+	}
+
+	public Table hist() {
+		Map<BigDecimal, Long> groups = this.value.stream()
+				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+		BigDecimal[] keys = new BigDecimal[groups.size()];
+		int[] counts = new int[groups.size()];
+
+		List<Entry<BigDecimal, Long>> lst = groups.entrySet().stream().collect(Collectors.toList());
+
+		for (int i = 0; i < lst.size(); i++) {
+			Entry<BigDecimal, Long> entry = lst.get(i);
+			keys[i] = entry.getKey();
+			counts[i] = entry.getValue().intValue(); // should never overflow
+		}
+
+		return Table.of(null, DecimalList.of(keys), IntList.of(counts));
+	}
+
+	/*
+	 * Return the row label of the maximum value.
+	 * 
+	 * If multiple values equal the maximum, the first row label with that value is
+	 * returned.
+	 */
+
+	// TODO: Implement idxmax and idxmin
+	// public Object idxmax() {
+	//
+	// }
+	//
+	// public Object idxmin() {
+	//
+	// }
+
+	public boolean isUnique() {
+		return this.distinct().count() == this.size();
+	}
+
+	public Mask isNa() {
+		boolean[] v = new boolean[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			v[i] = this.getAt(i) == null;
+		}
+
+		return Mask.of(v);
+	}
+
+	/*
+	 * Return the first element of the underlying data as a python scalar.
+	 */
+	public BigDecimal item() {
+		return this.value.isEmpty() ? null : this.value.get(0);
+	}
+
+	/*
+	 * Lazily iterate over (index, value) tuples.
+	 * 
+	 * This method returns an iterable tuple (index, value). This is convenient if
+	 * you want to create a lazy iterator.
+	 */
+	// TODO: implement index-based iteration
+	// public Iterator<Two<Object, BigDecimal>> items() {
+	//
+	// }
+	//
+	// public Stream<Two<Object, BigDecimal>> itemStream() {
+	//
+	// }
+
+	public Stream<IndexedObject<BigDecimal>> indexItemStream() {
+		return IntStream.range(0, this.size()).mapToObj(i -> IndexedObject.of(i, this.value.get(i)));
+	}
+
+	public Stream<IndexedObject<BigDecimal>> indexItemStreamReversed() {
+		int total = this.size();
+		return IntStream.range(0, this.size()).map(i -> total - i - 1)
+				.mapToObj(i -> IndexedObject.of(i, this.value.get(i)));
+	}
+
+	/*
+	 * Return unbiased kurtosis over requested axis.
+	 * 
+	 * Kurtosis obtained using Fisher’s definition of kurtosis (kurtosis o
+	 */
+	// TODO: Implement kurtosis
+	// public BigDecimal kurtosis() {
+	//
+	// }
+	//
+	// public BigDecimal kurt() {
+	//
+	// }
+
+	/*
+	 * Return index for last non-NA/null value.
+	 */
+	public int lastValidIndex() {
+		return this.indexItemStreamReversed().filter(v -> null != v.value()).findFirst().map(IndexedObject::getIndex)
+				.orElse(-1);
+	}
+
+	/*
+	 * Return the mean absolute deviation of the values for the requested axis.
+	 */
+	// TODO: Implement this
+	// public DecimalList meanAbsoluteDeviation() {
+	//
+	// }
+	// public DecimalList mad() {
+	// return this.meanAbsoluteDeviation();
+	// }
+
+	/**
+	 * replaces with the given value where the predicate evaluates to true
+	 * 
+	 * @param cond
+	 * @param val
+	 * @return
+	 */
+	public DecimalList replaceWhere(Predicate<BigDecimal> cond, BigDecimal val) {
+		Objects.requireNonNull(cond);
+		Objects.requireNonNull(val);
+
+		BigDecimal[] v = new BigDecimal[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			BigDecimal value = this.getAt(i);
+			if (cond.test(value)) {
+				v[i] = val;
+			} else {
+				v[i] = value;
+			}
+		}
+
+		return DecimalList.of(v);
+	}
+
+	public DecimalList replaceWhere(Mask cond, BigDecimal val) {
+		Objects.requireNonNull(cond);
+		Objects.requireNonNull(val);
+
+		BigDecimal[] v = new BigDecimal[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			BigDecimal value = this.getAt(i);
+			if (cond.getAt(i)) {
+				v[i] = val;
+			} else {
+				v[i] = value;
+			}
+		}
+
+		return DecimalList.of(v);
+	}
+
+	/*
+	 * Return the median of the values for the requested axis.
+	 * 
+	 * Note: this skips na values
+	 */
+	public BigDecimal median() {
+
+		DecimalList sorted = this.sorted();
+		DecimalList withoutNa = sorted.getAt(sorted.isNa());
+
+		if (withoutNa.size() == 0)
+			return null;
+
+		if (withoutNa.size() % 2 == 1) {
+			return withoutNa.getAt(withoutNa.size() / 2 + 1);
+		} else {
+			int medLocation = withoutNa.size() / 2;
+			return NambaMath.mean(withoutNa.getAt(medLocation), withoutNa.getAt(medLocation + 1));
+		}
+	}
+
+	/*
+	 * Return value at the given quantile.
+	 */
+	public BigDecimal quantile(BigDecimal quantile) {
+		/*
+		 * This optional parameter specifies the interpolation method to use, when the
+		 * desired quantile lies between two data points i and j:
+		 * 
+		 * linear: i + (j - i) * fraction, where fraction is the fractional part of the
+		 * index surrounded by i and j.
+		 * 
+		 * lower: i.
+		 * 
+		 * higher: j.
+		 * 
+		 * nearest: i or j whichever is nearest.
+		 * 
+		 * midpoint: (i + j) / 2.
+		 */
+	}
+
+	/*
+	 * Compute numerical data ranks (1 through n) along axis.
+	 * 
+	 * By default, equal values are assigned a rank that is the average of the ranks
+	 * of those values.
+	 */
+	public IntList rank() {
+		/*
+		 * How to rank the group of records that have the same value (i.e. ties):
+		 * 
+		 * average: average rank of the group
+		 * 
+		 * min: lowest rank in the group
+		 * 
+		 * max: highest rank in the group
+		 * 
+		 * first: ranks assigned in order they appear in the array
+		 * 
+		 * dense: like ‘min’, but rank always increases by 1 between groups.
+		 */
+	}
+
+	/*
+	 * Needs to be defined with window objects.
+	 */
+	public Map<Two<BigDecimal, BigDecimal>, DecimalList> rolling() {
+
+	}
+
+	public DecimalList round(int decimals) {
+
+	}
+
+	public DecimalList round(IntList decimals) {
+
+	}
+
+	public DecimalList sample(double fraction) {
+		return this.sample((int) (this.size() * fraction));
+	}
+
+	public DecimalList sample(int size) {
+
+	}
+
+	public DecimalList sample(int size, int randomState) {
+	}
+
+	/*
+	 * Return unbiased standard error of the mean over requested axis.
+	 * 
+	 * Normalized by N-1 by default. This can be changed using the ddof argument
+	 */
+	public BigDecimal meanStandardError() {
+
+	}
+
+	/*
+	 * Shift index by desired number of periods with an optional time freq.
+	 * 
+	 * 
+	 */
+	public DecimalList shift(int n) {
+		BigDecimal[] list = new BigDecimal[this.size()];
+
+		for (int i = n; i < list.length; i++)
+			list[i] = this.value.get(i - n);
+
+		return DecimalList.of(list);
+	}
+
+	/*
+	 * Return unbiased skew over requested axis.
+	 * 
+	 * Normalized by N-1.
+	 */
+	public BigDecimal skew() {
+
+	}
+
+	/*
+	 * Sort Series by index labels.
+	 * 
+	 * Returns a new Series sorted by label if inplace argument is False, otherwise
+	 * updates the original series and returns None.
+	 */
+	public DecimalList sortIndex() {
+
+	}
+
+	public DecimalList sorted(boolean descending, boolean naFirst) {
+
+	}
+
+	public DecimalList sorted() {
+		return this.sorted(false, false);
+	}
+
+	public DecimalList where(Mask mask) {
+
 	}
 
 	@Override

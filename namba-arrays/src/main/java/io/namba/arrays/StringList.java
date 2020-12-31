@@ -83,6 +83,25 @@ public class StringList extends DataList<String> {
 		return this.plus(other);
 	}
 
+	public StringList concat(String other) {
+		return this.plus(other);
+	}
+
+	public StringList concat(String sep, String... other) {
+
+	}
+
+	public StringList concat(String sep, StringList... other) {
+
+	}
+
+	/*
+	 * Pad left and right side of strings in the Series/Index.
+	 */
+	public StringList center() {
+
+	}
+
 	public StringList minus(String other) {
 		List<String> copy = new ArrayList<>(this.value.size());
 		for (String s : this.value) {
@@ -107,8 +126,13 @@ public class StringList extends DataList<String> {
 		return new StringList(copy);
 	}
 
+	@Override
 	public StringList repeat(int times) {
 		return this.multiply(times);
+	}
+
+	public StringList repeat(IntList times) {
+
 	}
 
 	public Mask contains(String str) {
@@ -122,6 +146,10 @@ public class StringList extends DataList<String> {
 		return Mask.of(b);
 	}
 
+	public Mask contains(StringList str) {
+
+	}
+
 	public Mask endsWith(String str) {
 		boolean[] b = new boolean[this.size()];
 
@@ -131,6 +159,10 @@ public class StringList extends DataList<String> {
 		}
 
 		return Mask.of(b);
+	}
+
+	public Mask endsWith(StringList str) {
+
 	}
 
 	public Mask startsWith(String str) {
@@ -184,6 +216,9 @@ public class StringList extends DataList<String> {
 		return IntList.of(this.stream().mapToInt(s -> s == null ? -1 : StringUtils.countMatches(s, search)).toArray());
 	}
 
+	public IntList count(StringList search) {
+	}
+
 	public StringList extract(String pattern, int group) {
 		Pattern compiledPattern = Pattern.compile(pattern);
 
@@ -208,8 +243,15 @@ public class StringList extends DataList<String> {
 		return StringList.of(b);
 	}
 
+	public StringList extract(StringList pattern, IntList group) {
+
+	}
+
 	public DataList<List<String>> extractAll(String pattern) {
 		return this.extractAll(pattern, 1);
+	}
+
+	public DataList<List<String>> extractAll(StringList pattern) {
 	}
 
 	public DataList<List<String>> extractAll(String pattern, int group) {
@@ -235,11 +277,21 @@ public class StringList extends DataList<String> {
 		return new DataList<>(DataType.OBJECT, b);
 	}
 
+	public DataList<List<String>> extractAll(StringList pattern, IntList group) {
+	}
+
 	public IntList indexOf(String string) {
 		return IntList.of(this.stream().mapToInt(s -> s == null ? Integer.MIN_VALUE : s.indexOf(string)).toArray());
 	}
 
 	public IntList find(String string) {
+		return this.indexOf(string);
+	}
+
+	public IntList indexOf(StringList string) {
+	}
+
+	public IntList find(StringList string) {
 		return this.indexOf(string);
 	}
 
@@ -251,12 +303,23 @@ public class StringList extends DataList<String> {
 		return this.lastIndexOf(string);
 	}
 
+	public IntList lastIndexOf(StringList string) {
+	}
+
+	public IntList findLast(StringList string) {
+		return this.lastIndexOf(string);
+	}
+
 	public StringList trim() {
 		return StringList.of(this.map(String::trim).value);
 	}
 
 	public Mask matches(String pattern) {
 		return Mask.of(this.stream().map(s -> null == s ? false : s.matches(pattern)).toArray(i -> new Boolean[i]));
+	}
+
+	public Mask matches(StringList pattern) {
+
 	}
 
 	public StringList rightPadToMaxLength() {
@@ -279,6 +342,14 @@ public class StringList extends DataList<String> {
 		return StringList.of(this.map(s -> StringUtils.leftPad(s, length)).value);
 	}
 
+	public StringList zfill(int legth) {
+		return this.leftPad(legth, "0");
+	}
+	
+	public StringList zfill() {
+		return this.leftPad(this.maxLength(), "0");
+	}
+
 	public StringList leftPad(int length, String padChar) {
 		return StringList.of(this.map(s -> StringUtils.leftPad(s, length, padChar)).value);
 	}
@@ -287,8 +358,16 @@ public class StringList extends DataList<String> {
 		return StringList.of(this.map(s -> null == s ? null : s.replace(search, replacement)).value);
 	}
 
+	public StringList replace(StringList search, StringList replacement) {
+
+	}
+
 	public StringList replaceMatch(String search, String replacement) {
 		return StringList.of(this.map(s -> null == s ? null : s.replaceAll(search, replacement)).value);
+	}
+
+	public StringList replaceMatch(StringList search, StringList replacement) {
+
 	}
 
 	public Mask isEmpty() {
@@ -365,6 +444,12 @@ public class StringList extends DataList<String> {
 		return Mask.of(b);
 	}
 
+	public Mask isLower() {
+	}
+
+	public Mask isUpper() {
+	}
+
 	public static void main(String[] args) {
 		System.out.println(DateTimeArray
 				.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
@@ -376,10 +461,30 @@ public class StringList extends DataList<String> {
 	public StringList string() {
 		return this;
 	}
-	
+
 	@Override
 	public String toString() {
 		return this.value.stream().collect(Collectors.joining("\n"));
+	}
+
+	public CategoryList factorize() {
+
+	}
+
+	public StringList toBase64() {
+
+	}
+
+	public StringList fromBase64() {
+
+	}
+
+	public DataList<List<String>> split(String delimiter) {
+
+	}
+
+	public DataList<List<String>> split(StringList delimiter) {
+
 	}
 
 	public class StringAccessor {
@@ -395,6 +500,9 @@ public class StringList extends DataList<String> {
 			return new StringList(list);
 		}
 
+		public StringList getAt(IntList n) {
+		}
+
 		public StringList getAt(int start, int length) {
 			List<String> list = new ArrayList<>();
 			for (String s : value) {
@@ -405,6 +513,10 @@ public class StringList extends DataList<String> {
 				}
 			}
 			return new StringList(list);
+		}
+
+		public StringList getAt(IntList start, IntList length) {
+
 		}
 	}
 }

@@ -16,34 +16,40 @@
 package io.namba.arrays;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
  * 
  * @author Ernest Kiwele
- *
  */
-public class Mask {
+public class Mask implements NambaList {
 
 	private final boolean[] value;
+	private final Index index;
+
+	private Mask(boolean[] array, Index index) {
+		this.value = array;
+		this.index = index;
+	}
 
 	private Mask(boolean[] array) {
-		this.value = array;
+		this(array, null);
 	}
 
 	public static Mask of(boolean[] array) {
-		return new Mask(array);
+		return new Mask(array, null);
 	}
-	
+
 	public static Mask trues(int size) {
 		boolean[] b = new boolean[size];
 		Arrays.fill(b, true);
 		return new Mask(b);
 	}
-	
+
 	public static Mask falses(int size) {
 		boolean[] b = new boolean[size];
-		Arrays.fill(b, false); 
+		Arrays.fill(b, false);
 		return new Mask(b);
 	}
 
@@ -53,6 +59,51 @@ public class Mask {
 			b[i] = array[i];
 
 		return new Mask(b);
+	}
+
+	@Override
+	public DataType dataType() {
+		return DataType.BOOLEAN;
+	}
+
+	@Override
+	public Mask getAt(int[] loc) {
+		boolean[] r = new boolean[loc.length];
+		for (int i = 0; i < r.length; i++) {
+			r[i] = this.value[loc[i]];
+		}
+		return Mask.of(r);
+	}
+
+	public boolean getAt(int loc) {
+		return this.value[loc];
+	}
+
+	@Override
+	public Index index() {
+		return this.index;
+	}
+
+	@Override
+	public Mask repeat(int n) {
+		boolean[] v = new boolean[n * this.value.length];
+
+		for (int i = 0; i < n; i++) {
+			System.arraycopy(this.value, 0, v, i * this.value.length, this.value.length);
+		}
+
+		return Mask.of(v);
+	}
+
+	@Override
+	public int size() {
+		return this.value.length;
+	}
+
+	@Override
+	public StringList string() {
+		return StringList.of(IntStream.range(0, this.value.length).mapToObj(i -> this.value[i] ? "true" : "false")
+				.collect(Collectors.toList()));
 	}
 
 	@Override
@@ -68,7 +119,7 @@ public class Mask {
 	public int count() {
 		return (int) IntStream.range(0, this.value.length).filter(i -> this.value[i]).count();
 	}
-	
+
 	public int trueCount() {
 		return this.count();
 	}
@@ -104,5 +155,41 @@ public class Mask {
 
 	public boolean anyFalse() {
 		return IntStream.range(0, this.value.length).anyMatch(i -> !this.value[i]);
+	}
+
+	public Mask and(Mask other) {
+		boolean[] r = new boolean[this.value.length];
+
+		for (int i = 0; i < this.value.length; i++)
+			r[i] = this.value[i] && other.value[i];
+
+		return Mask.of(r);
+	}
+
+	public Mask or(Mask other) {
+		boolean[] r = new boolean[this.value.length];
+
+		for (int i = 0; i < this.value.length; i++)
+			r[i] = this.value[i] || other.value[i];
+
+		return Mask.of(r);
+	}
+
+	public Mask xor(Mask other) {
+		boolean[] r = new boolean[this.value.length];
+
+		for (int i = 0; i < this.value.length; i++)
+			r[i] = this.value[i] ^ other.value[i];
+
+		return Mask.of(r);
+	}
+
+	public Mask negate() {
+		boolean[] r = new boolean[this.value.length];
+
+		for (int i = 0; i < this.value.length; i++)
+			r[i] = !this.value[i];
+
+		return Mask.of(r);
 	}
 }

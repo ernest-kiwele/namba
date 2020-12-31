@@ -15,6 +15,7 @@
 
 package io.namba.arrays;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -101,6 +102,10 @@ public class DataList<T> implements Iterable<T>, NambaList {
 		return values().stream();
 	}
 
+	public Stream<T> reverseStream() {
+		return IntStream.iterate(this.value.size() - 1, i -> i - 1).limit(this.value.size()).mapToObj(this.value::get);
+	}
+
 	public Collection<T> values() {
 		return Collections.unmodifiableList(this.value);
 	}
@@ -172,6 +177,35 @@ public class DataList<T> implements Iterable<T>, NambaList {
 				.flatMap(Function.identity()).collect(Collectors.toList()));
 	}
 
+	public Mask eq(T val) {
+
+	}
+
+	public Mask eq(DataList<T> val) {
+
+	}
+
+	public Mask equals(T val) {
+
+	}
+
+	public Mask equals(DataList<T> val) {
+
+	}
+
+	/*
+	 * Transform each element of a list-like to a row.
+	 * 
+	 * 
+	 */
+	public <U> DataList<U> explode(Function<T, List<U>> exploder) {
+
+	}
+
+	public DataList<T> concat(DataList<T> other) {
+
+	}
+
 	@Override
 	public StringList string() {
 		return StringList
@@ -182,4 +216,5 @@ public class DataList<T> implements Iterable<T>, NambaList {
 	public String toString() {
 		return this.value.stream().toString();
 	}
+
 }

@@ -15,6 +15,8 @@
 
 package io.namba.arrays;
 
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,9 @@ public class Index {
 	protected final List<IndexLevel> levels;
 	protected final Map<Object, IndexLevel> keyMap;
 
+	public final DateTimeAccessor dt = new DateTimeAccessor();
+	public final CategoryAccessor cat = new CategoryAccessor();
+
 	protected Index(List<IndexLevel> levels) {
 		this.levels = Collections.unmodifiableList(levels);
 		this.keyMap = this.levels.stream().collect(Collectors.toMap(IndexLevel::getKey, Function.identity()));
@@ -50,39 +55,79 @@ public class Index {
 	}
 
 	public static Index intIndex(int[] values, IntFunction<Object> indexer) {
-		List<IndexLevel> levels= IntStream.range(0, values.length).mapToObj(i -> Pair.of(indexer.apply(values[i]), i))
-				.collect(Collectors.groupingBy(Pair::getLeft, Collectors.mapping(Pair::getRight, Collectors
-						.collectingAndThen(Collectors.toList(), list -> list.stream().mapToInt(i -> i).toArray()))))
-				.entrySet()
-				.stream()
-				.map(entry -> IndexLevel.of(entry.getKey(), entry.getValue()))
+		List<IndexLevel> levels = IntStream.range(0, values.length).mapToObj(i -> Pair.of(indexer.apply(values[i]), i))
+				.collect(Collectors.groupingBy(Pair::getLeft,
+						Collectors.mapping(Pair::getRight,
+								Collectors.collectingAndThen(Collectors.toList(),
+										list -> list.stream().mapToInt(i -> i).toArray()))))
+				.entrySet().stream().map(entry -> IndexLevel.of(entry.getKey(), entry.getValue()))
 				.collect(Collectors.toList());
-		
+
 		return new Index(levels);
 	}
-	
+
 	public static <T> Index objectIndex(List<T> values, Function<T, Object> indexer) {
-		List<IndexLevel> levels= IntStream.range(0, values.size()).mapToObj(i -> Pair.of(indexer.apply(values.get(i)), i))
-				.collect(Collectors.groupingBy(Pair::getLeft, Collectors.mapping(Pair::getRight, Collectors
-						.collectingAndThen(Collectors.toList(), list -> list.stream().mapToInt(i -> i).toArray()))))
-				.entrySet()
-				.stream()
-				.map(entry -> IndexLevel.of(entry.getKey(), entry.getValue()))
+		List<IndexLevel> levels = IntStream.range(0, values.size())
+				.mapToObj(i -> Pair.of(indexer.apply(values.get(i)), i))
+				.collect(Collectors.groupingBy(Pair::getLeft,
+						Collectors.mapping(Pair::getRight,
+								Collectors.collectingAndThen(Collectors.toList(),
+										list -> list.stream().mapToInt(i -> i).toArray()))))
+				.entrySet().stream().map(entry -> IndexLevel.of(entry.getKey(), entry.getValue()))
 				.collect(Collectors.toList());
-		
+
 		return new Index(levels);
 	}
-	
+
 	public int getSize() {
 		return this.keyMap.size();
 	}
-	
+
 	public Set<Object> getKeys() {
 		return this.keyMap.keySet();
 	}
-	
+
 	@Override
 	public String toString() {
 		return this.levels.toString();
+	}
+
+	public class DateTimeAccessor {
+		private DateTimeIndex dtIndex = (DateTimeIndex) Index.this;
+
+		/*
+		 * Convert TimeSeries to specified frequency.
+		 * 
+		 * Optionally provide filling method to pad/backfill missing values.
+		 * 
+		 * Returns the original data conformed to a new index with the specified
+		 * frequency. resample is more appropriate if an operation, such as
+		 * summarization, is necessary to represent the data at the new frequency.
+		 */
+		public DateTimeIndex asFrequency(ChronoUnit unit) {
+
+		}
+
+		public DateTimeIndex asFrequency(String unit) {
+			return this.asFrequency(ChronoUnit.valueOf(unit.toUpperCase().trim()));
+		}
+
+		/*
+		 * Return the last row(s) without any NaNs before where.
+		 * 
+		 * The last row (for each element in where, if list) without any NaN is taken.
+		 * In case of a DataFrame, the last row without NaN considering only the subset
+		 * of columns (if not None)
+		 * 
+		 * If there is no good value, NaN is returned for a Series or a Series of NaN
+		 * values for a DataFrame
+		 */
+		public int asOf(LocalDateTime dateTime) {
+
+		}
+	}
+	
+	public class CategoryAccessor {
+		
 	}
 }
