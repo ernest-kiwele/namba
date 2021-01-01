@@ -559,10 +559,13 @@ public class StringList extends DataList<String> {
 		return this.value.stream().collect(Collectors.joining("\n"));
 	}
 
-	// TODO: Implement
-	// public CategoryList factorize() {
-	//
-	// }
+	public CategoryList factorize() {
+		return CategoryList.of(this);
+	}
+
+	public CategoryList asCategory() {
+		return this.factorize();
+	}
 
 	public StringList toBase64() {
 		List<String> b = new ArrayList<>();
