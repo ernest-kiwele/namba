@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.time.Period;
 import java.time.Year;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +28,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -41,6 +43,8 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class DateTimeArray extends DataList<LocalDateTime> {
 
+	private static final DateTimeFormatter DAY_NAME_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
+	private static final DateTimeFormatter SHORT_DAY_NAME_FORMATTER = DateTimeFormatter.ofPattern("EEEE");
 	private static final Map<Integer, DateTimeFormatter> FORMATTERS = Map.of(4, DateTimeFormatter.ofPattern("yyyy"), 6,
 			DateTimeFormatter.ofPattern("yyyyMM"), 8, DateTimeFormatter.ofPattern("yyyyMMdd"), 10,
 			DateTimeFormatter.ofPattern("yyyyMMddHH"), 12, DateTimeFormatter.ofPattern("yyyyMMddHHmm"), 14,
@@ -228,9 +232,26 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 	}
 
 	public StringList dayName() {
+		return StringList.of(this.stream().map(dt -> null == dt ? null : dt.format(DAY_NAME_FORMATTER))
+				.collect(Collectors.toList()));
 	}
 
-	public StringList dayName(String locale) {
+	public StringList dayName(String langTag) {
+		return StringList.of(this.stream()
+				.map(dt -> null == dt ? null
+						: dt.format(DateTimeFormatter.ofPattern("EEEE", Locale.forLanguageTag(langTag))))
+				.collect(Collectors.toList()));
+	}
+
+	public StringList shortDayName() {
+		return StringList.of(this.stream().map(dt -> null == dt ? null : dt.format(SHORT_DAY_NAME_FORMATTER))
+				.collect(Collectors.toList()));
+	}
+
+	public StringList shortDayName(String langTag) {
+		return StringList.of(this.stream().map(
+				dt -> null == dt ? null : dt.format(DateTimeFormatter.ofPattern("E", Locale.forLanguageTag(langTag))))
+				.collect(Collectors.toList()));
 	}
 
 	public IntList hour() {
@@ -283,13 +304,14 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 		return Mask.of(a);
 	}
 
-	public DateTimeArray ceilTo(String precision) {
-		return this.ceilTo(
-				ChronoUnit.valueOf(Objects.requireNonNull(precision, "precision cannot be null").toUpperCase()));
-	}
-
-	public DateTimeArray ceilTo(ChronoUnit precision) {
-	}
+	// TODO: Implement
+	// public DateTimeArray ceilTo(String precision) {
+	// return this.ceilTo(
+	// ChronoUnit.valueOf(Objects.requireNonNull(precision, "precision cannot be
+	// null").toUpperCase()));
+	// }
+	// public DateTimeArray ceilTo(ChronoUnit precision) {
+	// }
 
 	public DateTimeArray truncateTo(String precision) {
 		return this.truncateTo(
@@ -517,36 +539,87 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 	 * Return a Dataframe of the components of the Timedeltas (a DF with columns
 	 * like days hours minutes seconds milliseconds microseconds nanoseconds).
 	 */
-	public Table components() {
-
-	}
+	// TODO: implement
+	// public Table components() {
+	//
+	// }
 
 	public IntList daysInMonth() {
+		int[] v = new int[size()];
 
+		for (int i = 0; i < v.length; i++) {
+			LocalDateTime ldt = this.getAt(i);
+			v[i] = null == ldt ? -1 : ldt.getMonth().length(Year.isLeap(ldt.getYear()));
+		}
+
+		return IntList.of(v);
 	}
 
 	public Mask isMonthEnd() {
+		boolean[] v = new boolean[size()];
 
+		for (int i = 0; i < v.length; i++) {
+			LocalDateTime ldt = this.getAt(i);
+			v[i] = null != ldt && ldt.getDayOfMonth() == ldt.getMonth().length(Year.isLeap(ldt.getYear()));
+		}
+
+		return Mask.of(v);
 	}
 
 	public Mask isMonthStart() {
+		boolean[] v = new boolean[size()];
 
+		for (int i = 0; i < v.length; i++) {
+			LocalDateTime ldt = this.getAt(i);
+			v[i] = null != ldt && ldt.getDayOfMonth() == 1;
+		}
+
+		return Mask.of(v);
 	}
 
 	public Mask isQuarterStart() {
+		boolean[] v = new boolean[size()];
 
+		for (int i = 0; i < v.length; i++) {
+			LocalDateTime ldt = this.getAt(i);
+			v[i] = null != ldt && ldt.getMonth().firstMonthOfQuarter() == ldt.getMonth() && ldt.getDayOfMonth() == 1;
+		}
+
+		return Mask.of(v);
 	}
 
 	public Mask isQuarterEnd() {
+		boolean[] v = new boolean[size()];
 
+		for (int i = 0; i < v.length; i++) {
+			LocalDateTime ldt = this.getAt(i);
+			v[i] = null != ldt && ldt.getMonth().firstMonthOfQuarter().getValue() + 2 == ldt.getMonth().getValue()
+					&& ldt.getDayOfMonth() == ldt.getMonth().length(Year.isLeap(ldt.getYear()));
+		}
+
+		return Mask.of(v);
 	}
 
 	public Mask isYearStart() {
+		boolean[] v = new boolean[size()];
 
+		for (int i = 0; i < v.length; i++) {
+			LocalDateTime ldt = this.getAt(i);
+			v[i] = null != ldt && ldt.getMonth() == Month.JANUARY && 1 == ldt.getDayOfMonth();
+		}
+
+		return Mask.of(v);
 	}
 
 	public Mask isYearEnd() {
+		boolean[] v = new boolean[size()];
 
+		for (int i = 0; i < v.length; i++) {
+			LocalDateTime ldt = this.getAt(i);
+			v[i] = null != ldt && ldt.getMonth() == Month.DECEMBER && 31 == ldt.getDayOfMonth();
+		}
+
+		return Mask.of(v);
 	}
 
 	/*
@@ -555,23 +628,22 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 	 * When having a DataFrame with dates as index, this function can select the
 	 * last few rows based on a date offset.
 	 */
-	public DateTimeArray last(LocalDateTime offset) {
-
-	}
-
-	public DateTimeArray shift(ChronoUnit unit, long value) {
-
-	}
-
-	public DateTimeArray shift(ChronoUnit unit) {
-		return this.shift(unit, 1L);
-	}
-	
+	// TODO: evaluate and/or implement
+	// public DateTimeArray last(LocalDateTime offset) {
+	//
+	// }
+	// public DateTimeArray shift(ChronoUnit unit, long value) {
+	//
+	// }
+	// public DateTimeArray shift(ChronoUnit unit) {
+	// return this.shift(unit, 1L);
+	// }
 
 	public static void main(String[] args) {
-		System.out.println(DateTimeArray
-				.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
-						LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.MIDNIGHT), 64)
-				.plus(Duration.ofDays(5)).format("dd/hh:mm:ssa"));
+		DateTimeArray dta = DateTimeArray.linearFit(LocalDateTime.of(LocalDate.of(2016, 10, 12), LocalTime.MIDNIGHT),
+				LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.MIDNIGHT), 8).plus(Duration.ofDays(5));
+		System.out.println(dta);
+		System.out.println();
+		System.out.println(dta.daysInMonth());
 	}
 }
