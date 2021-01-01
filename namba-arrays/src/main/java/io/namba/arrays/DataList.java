@@ -15,7 +15,6 @@
 
 package io.namba.arrays;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -179,18 +178,25 @@ public class DataList<T> implements Iterable<T>, NambaList {
 
 	public Mask eq(T val) {
 
+		boolean[] b = new boolean[size()];
+
+		for (int i = 0; i < b.length; i++) {
+			T v = this.getAt(i);
+			b[i] = v != null && v.equals(val);
+		}
+
+		return Mask.of(b);
 	}
 
 	public Mask eq(DataList<T> val) {
+		boolean[] b = new boolean[size()];
 
-	}
+		for (int i = 0; i < b.length; i++) {
+			T v = this.getAt(i);
+			b[i] = v != null && v.equals(val.getAt(i));
+		}
 
-	public Mask equals(T val) {
-
-	}
-
-	public Mask equals(DataList<T> val) {
-
+		return Mask.of(b);
 	}
 
 	/*
@@ -199,11 +205,15 @@ public class DataList<T> implements Iterable<T>, NambaList {
 	 * 
 	 */
 	public <U> DataList<U> explode(Function<T, List<U>> exploder) {
-
+		return new DataList<U>(DataType.OBJECT,
+				this.stream().flatMap(a -> exploder.apply(a).stream()).collect(Collectors.toList()));
 	}
 
 	public DataList<T> concat(DataList<T> other) {
+		List<T> all = new ArrayList<>(this.value);
+		all.addAll(other.value);
 
+		return new DataList<>(this.dataType, all);
 	}
 
 	@Override
@@ -214,7 +224,6 @@ public class DataList<T> implements Iterable<T>, NambaList {
 
 	@Override
 	public String toString() {
-		return this.value.stream().toString();
+		return this.value.stream().map(v -> v == null ? "" : v.toString()).collect(Collectors.joining("\n"));
 	}
-
 }
