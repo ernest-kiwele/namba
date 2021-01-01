@@ -15,8 +15,6 @@
 
 package io.namba.arrays;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -95,22 +93,9 @@ public class Index {
 	public class DateTimeAccessor {
 		private DateTimeIndex dtIndex = (DateTimeIndex) Index.this;
 
-		/*
-		 * Convert TimeSeries to specified frequency.
-		 * 
-		 * Optionally provide filling method to pad/backfill missing values.
-		 * 
-		 * Returns the original data conformed to a new index with the specified
-		 * frequency. resample is more appropriate if an operation, such as
-		 * summarization, is necessary to represent the data at the new frequency.
-		 */
-		public DateTimeIndex asFrequency(ChronoUnit unit) {
-
-		}
-
-		public DateTimeIndex asFrequency(String unit) {
-			return this.asFrequency(ChronoUnit.valueOf(unit.toUpperCase().trim()));
-		}
+		// public DateTimeIndex asFrequency(String unit) {
+		// return this.asFrequency(ChronoUnit.valueOf(unit.toUpperCase().trim()));
+		// }
 
 		/*
 		 * Return the last row(s) without any NaNs before where.
@@ -122,12 +107,12 @@ public class Index {
 		 * If there is no good value, NaN is returned for a Series or a Series of NaN
 		 * values for a DataFrame
 		 */
-		public int asOf(LocalDateTime dateTime) {
-
-		}
+		// public int asOf(LocalDateTime dateTime) {
+		//
+		// }
 	}
-	
+
 	public class CategoryAccessor {
-		
+
 	}
 }

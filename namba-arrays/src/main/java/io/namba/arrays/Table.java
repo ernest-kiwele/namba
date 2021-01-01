@@ -15,7 +15,6 @@
 
 package io.namba.arrays;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -117,13 +116,14 @@ public class Table implements NambaList {
 		return this.tail(SUMMARY_SIZE);
 	}
 
-	public Object at(Object row, String column) {
-
-	}
-
-	public Object iat(int row, int column) {
-
-	}
+	// TODO: Implement these lookups based on index values.
+	// public Object at(Object row, String column) {
+	//
+	// }
+	//
+	// public Object iat(int row, int column) {
+	//
+	// }
 
 	@Override
 	public NambaList repeat(int n) {

@@ -15,8 +15,6 @@
 
 package io.namba.arrays.agg;
 
-import java.util.List;
-
 /**
  * 
  * @author Ernest Kiwele
@@ -24,11 +22,12 @@ import java.util.List;
  */
 public interface Grouping {
 
-	int groupCount();
-	
-	int count();
-	
-	List<Grouping> groups();
-	
-	int depth();
+	// TODO: Implement group values
+	// int groupCount();
+	//
+	// int count();
+	//
+	// List<Grouping> groups();
+	//
+	// int depth();
 }
