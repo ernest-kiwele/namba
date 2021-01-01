@@ -21,7 +21,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -87,19 +89,19 @@ public class StringList extends DataList<String> {
 		return this.plus(other);
 	}
 
-	public StringList concat(String sep, String... other) {
-
-	}
-
-	public StringList concat(String sep, StringList... other) {
-
-	}
-
 	/*
 	 * Pad left and right side of strings in the Series/Index.
 	 */
 	public StringList center() {
+		int maxLength = this.maxLength();
 
+		List<String> v = new ArrayList<>();
+
+		for (int i = 0; i < size(); i++) {
+			v.add(StringUtils.center(this.getAt(i), maxLength));
+		}
+
+		return of(v);
 	}
 
 	public StringList minus(String other) {
@@ -132,7 +134,17 @@ public class StringList extends DataList<String> {
 	}
 
 	public StringList repeat(IntList times) {
+		List<String> v = new ArrayList<>();
 
+		for (int i = 0; i < this.size(); i++) {
+			String val = this.value.get(i);
+			if (null == val)
+				v.add(null);
+			else
+				v.add(StringUtils.repeat(val, times.value[i]));
+		}
+
+		return of(v);
 	}
 
 	public Mask contains(String str) {
@@ -147,6 +159,14 @@ public class StringList extends DataList<String> {
 	}
 
 	public Mask contains(StringList str) {
+		boolean[] b = new boolean[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			String v = this.value.get(i);
+			b[i] = v == null ? false : v.contains(str.getAt(i));
+		}
+
+		return Mask.of(b);
 
 	}
 
@@ -162,7 +182,14 @@ public class StringList extends DataList<String> {
 	}
 
 	public Mask endsWith(StringList str) {
+		boolean[] b = new boolean[this.size()];
 
+		for (int i = 0; i < this.size(); i++) {
+			String v = this.value.get(i);
+			b[i] = v != null && v.endsWith(str.getAt(i));
+		}
+
+		return Mask.of(b);
 	}
 
 	public Mask startsWith(String str) {
@@ -217,6 +244,13 @@ public class StringList extends DataList<String> {
 	}
 
 	public IntList count(StringList search) {
+		int[] r = new int[this.value.size()];
+
+		for (int i = 0; i < size(); i++) {
+			r[i] = StringUtils.countMatches(this.value.get(i), search.getAt(i));
+		}
+
+		return IntList.of(r);
 	}
 
 	public StringList extract(String pattern, int group) {
@@ -243,16 +277,17 @@ public class StringList extends DataList<String> {
 		return StringList.of(b);
 	}
 
-	public StringList extract(StringList pattern, IntList group) {
-
-	}
+	// TODO: Implement
+	// public StringList extract(StringList pattern, IntList group) {
+	//
+	// }
 
 	public DataList<List<String>> extractAll(String pattern) {
 		return this.extractAll(pattern, 1);
 	}
-
-	public DataList<List<String>> extractAll(StringList pattern) {
-	}
+	// TODO: Implement
+	// public DataList<List<String>> extractAll(StringList pattern) {
+	// }
 
 	public DataList<List<String>> extractAll(String pattern, int group) {
 		Pattern compiledPattern = Pattern.compile(pattern);
@@ -277,8 +312,9 @@ public class StringList extends DataList<String> {
 		return new DataList<>(DataType.OBJECT, b);
 	}
 
-	public DataList<List<String>> extractAll(StringList pattern, IntList group) {
-	}
+	// TODO: Implement
+	// public DataList<List<String>> extractAll(StringList pattern, IntList group) {
+	// }
 
 	public IntList indexOf(String string) {
 		return IntList.of(this.stream().mapToInt(s -> s == null ? Integer.MIN_VALUE : s.indexOf(string)).toArray());
@@ -289,6 +325,14 @@ public class StringList extends DataList<String> {
 	}
 
 	public IntList indexOf(StringList string) {
+		int[] v = new int[this.size()];
+
+		for (int i = 0; i < v.length; i++) {
+			String val = this.getAt(i);
+			v[i] = null == val ? Integer.MIN_VALUE : val.indexOf(string.getAt(i));
+		}
+
+		return IntList.of(v);
 	}
 
 	public IntList find(StringList string) {
@@ -304,6 +348,15 @@ public class StringList extends DataList<String> {
 	}
 
 	public IntList lastIndexOf(StringList string) {
+		int[] v = new int[this.size()];
+
+		for (int i = 0; i < v.length; i++) {
+			String val = this.getAt(i);
+			v[i] = null == val ? Integer.MIN_VALUE : val.lastIndexOf(string.getAt(i));
+		}
+
+		return IntList.of(v);
+
 	}
 
 	public IntList findLast(StringList string) {
@@ -311,15 +364,24 @@ public class StringList extends DataList<String> {
 	}
 
 	public StringList trim() {
-		return StringList.of(this.map(String::trim).value);
+		return StringList.of(this.map(StringUtils::trim).value);
 	}
 
 	public Mask matches(String pattern) {
-		return Mask.of(this.stream().map(s -> null == s ? false : s.matches(pattern)).toArray(i -> new Boolean[i]));
+		return Mask.of(this.stream().map(s -> null != s && s.matches(pattern)).toArray(i -> new Boolean[i]));
 	}
 
 	public Mask matches(StringList pattern) {
+		boolean[] b = new boolean[this.size()];
 
+		for (int i = 0; i < b.length; i++) {
+			String text = this.getAt(i);
+			String patt = pattern.getAt(i);
+
+			b[i] = null != text && null != patt && text.matches(patt);
+		}
+
+		return Mask.of(b);
 	}
 
 	public StringList rightPadToMaxLength() {
@@ -345,7 +407,7 @@ public class StringList extends DataList<String> {
 	public StringList zfill(int legth) {
 		return this.leftPad(legth, "0");
 	}
-	
+
 	public StringList zfill() {
 		return this.leftPad(this.maxLength(), "0");
 	}
@@ -359,7 +421,17 @@ public class StringList extends DataList<String> {
 	}
 
 	public StringList replace(StringList search, StringList replacement) {
+		List<String> v = new ArrayList<>();
 
+		for (int i = 0; i < size(); i++) {
+			String t = this.getAt(i);
+			String s = search.getAt(i);
+			String r = replacement.getAt(i);
+
+			v.add(null == t || null == s || null == r ? null : t.replace(s, r));
+		}
+
+		return of(v);
 	}
 
 	public StringList replaceMatch(String search, String replacement) {
@@ -367,7 +439,17 @@ public class StringList extends DataList<String> {
 	}
 
 	public StringList replaceMatch(StringList search, StringList replacement) {
+		List<String> v = new ArrayList<>();
 
+		for (int i = 0; i < size(); i++) {
+			String t = this.getAt(i);
+			String s = search.getAt(i);
+			String r = replacement.getAt(i);
+
+			v.add(null == t || null == s || null == r ? null : t.replaceAll(s, r));
+		}
+
+		return of(v);
 	}
 
 	public Mask isEmpty() {
@@ -375,7 +457,7 @@ public class StringList extends DataList<String> {
 
 		for (int i = 0; i < this.size(); i++) {
 			String v = this.value.get(i);
-			b[i] = v == null ? true : v.isEmpty();
+			b[i] = v == null || v.isEmpty();
 		}
 
 		return Mask.of(b);
@@ -386,7 +468,7 @@ public class StringList extends DataList<String> {
 
 		for (int i = 0; i < this.size(); i++) {
 			String v = this.value.get(i);
-			b[i] = v == null ? true : v.trim().isEmpty();
+			b[i] = v == null || v.trim().isEmpty();
 		}
 
 		return Mask.of(b);
@@ -397,7 +479,7 @@ public class StringList extends DataList<String> {
 
 		for (int i = 0; i < this.size(); i++) {
 			String v = this.value.get(i);
-			b[i] = v == null ? false : !v.isEmpty();
+			b[i] = v != null && !v.isEmpty();
 		}
 
 		return Mask.of(b);
@@ -408,7 +490,7 @@ public class StringList extends DataList<String> {
 
 		for (int i = 0; i < this.size(); i++) {
 			String v = this.value.get(i);
-			b[i] = v == null ? false : !v.trim().isEmpty();
+			b[i] = v != null && !v.trim().isEmpty();
 		}
 
 		return Mask.of(b);
@@ -445,16 +527,25 @@ public class StringList extends DataList<String> {
 	}
 
 	public Mask isLower() {
+		boolean[] b = new boolean[size()];
+
+		for (int i = 0; i < b.length; i++) {
+			String val = this.getAt(i);
+			b[i] = null != val && StringUtils.isAllLowerCase(val);
+		}
+
+		return Mask.of(b);
 	}
 
 	public Mask isUpper() {
-	}
+		boolean[] b = new boolean[size()];
 
-	public static void main(String[] args) {
-		System.out.println(DateTimeArray
-				.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
-						LocalDateTime.of(LocalDate.now().minusDays(10), LocalTime.MIDNIGHT), 4)
-				.plus(Duration.ofDays(5)).format("yyyy-MM-dd hh:mm:ssa").extractAll("([\\D]+)"));
+		for (int i = 0; i < b.length; i++) {
+			String val = this.getAt(i);
+			b[i] = null != val && StringUtils.isAllUpperCase(val);
+		}
+
+		return Mask.of(b);
 	}
 
 	@Override
@@ -467,24 +558,55 @@ public class StringList extends DataList<String> {
 		return this.value.stream().collect(Collectors.joining("\n"));
 	}
 
-	public CategoryList factorize() {
-
-	}
+	// TODO: Implement
+	// public CategoryList factorize() {
+	//
+	// }
 
 	public StringList toBase64() {
+		List<String> b = new ArrayList<>();
 
+		for (int i = 0; i < size(); i++) {
+			String val = this.getAt(i);
+			b.add(null == val ? null : Base64.getEncoder().encodeToString(val.getBytes()));
+		}
+
+		return of(b);
 	}
 
 	public StringList fromBase64() {
+		List<String> b = new ArrayList<>();
 
+		for (int i = 0; i < size(); i++) {
+			String val = this.getAt(i);
+			b.add(null == val ? null : new String(Base64.getDecoder().decode(val)));
+		}
+
+		return of(b);
 	}
 
 	public DataList<List<String>> split(String delimiter) {
+		List<List<String>> b = new ArrayList<>();
 
+		for (int i = 0; i < size(); i++) {
+			String val = this.getAt(i);
+			b.add(null == val ? Collections.emptyList() : Arrays.asList(val.split(delimiter)));
+		}
+
+		return new DataList<>(DataType.OBJECT, b);
 	}
 
 	public DataList<List<String>> split(StringList delimiter) {
+		List<List<String>> b = new ArrayList<>();
 
+		for (int i = 0; i < size(); i++) {
+			String val = this.getAt(i);
+			String del = delimiter.getAt(i);
+
+			b.add(null == val ? Collections.emptyList() : Arrays.asList(val.split(del)));
+		}
+
+		return new DataList<>(DataType.OBJECT, b);
 	}
 
 	public class StringAccessor {
@@ -501,6 +623,16 @@ public class StringList extends DataList<String> {
 		}
 
 		public StringList getAt(IntList n) {
+			List<String> list = new ArrayList<>();
+			for (int i = 0; i < size(); i++) {
+				String s = StringList.this.getAt(i);
+				if (null == s) {
+					list.add(null);
+				} else {
+					list.add(s.substring(n.getAt(i)));
+				}
+			}
+			return new StringList(list);
 		}
 
 		public StringList getAt(int start, int length) {
@@ -516,7 +648,24 @@ public class StringList extends DataList<String> {
 		}
 
 		public StringList getAt(IntList start, IntList length) {
-
+			List<String> list = new ArrayList<>();
+			for (int i = 0; i < size(); i++) {
+				String s = StringList.this.getAt(i);
+				if (null == s) {
+					list.add(null);
+				} else {
+					int st = start.getAt(i);
+					list.add(s.substring(st, st + length.value[i]));
+				}
+			}
+			return new StringList(list);
 		}
+	}
+
+	public static void main(String[] args) {
+		System.out.println(DateTimeArray
+				.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
+						LocalDateTime.of(LocalDate.now().minusDays(10), LocalTime.MIDNIGHT), 4)
+				.plus(Duration.ofDays(5)).format("yyyy-MM-dd hh:mm:ssa").extractAll("([\\D]+)"));
 	}
 }
