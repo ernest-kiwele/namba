@@ -18,6 +18,10 @@ package io.namba.functions;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 
 import io.namba.arrays.DecimalList;
 
@@ -67,5 +71,69 @@ public class NambaMath {
 
 			return to + precision <= 0 ? BigDecimal.ZERO : tmp.round(new MathContext(precision + to));// ? 0 : precision
 		}
+	}
+
+	public static BigDecimal mean(Collection<BigDecimal> coll) {
+		if (null == coll || coll.isEmpty())
+			return null;
+
+		BigDecimal a = BigDecimal.ZERO;
+		for (BigDecimal bd : coll) {
+			if (bd != null)
+				a = a.add(bd);
+		}
+
+		return a;
+	}
+
+	public static BigDecimal median(Collection<BigDecimal> coll) {
+		if (null == coll || coll.isEmpty())
+			return null;
+
+		List<BigDecimal> l = new ArrayList<>();
+		l.sort(Comparator.naturalOrder());
+
+		if (l.size() % 2 == 1) {
+			return l.get(1 + (l.size() / 2));
+		}
+
+		if (l.size() == 1) {
+			return l.get(0);
+		}
+
+		int mid = l.size() / 2;
+		return mean(l.get(mid), l.get(mid + 1));
+	}
+
+	public static BigDecimal populationVar(Collection<BigDecimal> coll, MathContext mathContext) {
+		if (null == coll || coll.isEmpty())
+			return null;
+
+		BigDecimal mean = mean(coll);
+		return coll.stream().map(i -> i.subtract(mean, mathContext).pow(2))
+				.reduce(BigDecimal.ZERO, (a, b) -> a.add(b, mathContext)).divide(BigDecimal.valueOf(coll.size()));
+	}
+
+	public static BigDecimal sampleVar(Collection<BigDecimal> coll, MathContext mathContext) {
+		if (null == coll || coll.isEmpty())
+			return null;
+
+		BigDecimal mean = mean(coll);
+		return coll.stream().map(i -> i.subtract(mean).pow(2)).reduce(BigDecimal.ZERO, (a, b) -> a.add(b, mathContext))
+				.divide(BigDecimal.valueOf(coll.size() - 1l), mathContext);
+	}
+
+	public static BigDecimal populationStd(Collection<BigDecimal> coll, MathContext mathContext) {
+		if (null == coll || coll.isEmpty())
+			return null;
+
+		return populationVar(coll, mathContext).sqrt(mathContext);
+	}
+
+	public static BigDecimal sampleStd(Collection<BigDecimal> coll, MathContext mathContext) {
+		if (null == coll || coll.isEmpty())
+			return null;
+
+		return sampleVar(coll, mathContext).sqrt(mathContext);
 	}
 }

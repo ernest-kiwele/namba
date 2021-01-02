@@ -39,8 +39,11 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 
 import io.namba.Namba;
+import io.namba.arrays.agg.DecimalGrouping;
+import io.namba.arrays.agg.ObjectGrouping;
 import io.namba.arrays.data.IndexedObject;
 import io.namba.arrays.data.IntData;
+import io.namba.arrays.data.tuple.Two;
 import io.namba.arrays.range.IntRange;
 import io.namba.functions.DecimalRef;
 import io.namba.functions.DecimalRef.DecimalPredicate;
@@ -1489,9 +1492,18 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	@Override
+	public <K> ObjectGrouping<K, BigDecimal> groupBy(Function<BigDecimal, K> classifier) {
+		return DecimalGrouping.of(this,
+				IntStream.range(0, size()).mapToObj(i -> Two.of(i, classifier.apply(this.value.get(i)))).collect(
+						Collectors.groupingBy(Two::b, Collectors.mapping(Two::a, Collectors.toList()))),
+				false);
+
+	}
+
+	@Override
 	public StringList string() {
 		return StringList
-				.of(this.value.stream().map(o -> o == null ? null : o.toString()).collect(Collectors.toList()));
+				.of(this.value.stream().map(o -> o == null ? null : o.toPlainString()).collect(Collectors.toList()));
 	}
 
 	public class IndexAccessor {
@@ -1519,5 +1531,8 @@ public class DecimalList extends DataList<BigDecimal> {
 		System.out.println();
 		System.out.println(rr.roundTo(4).asDouble());
 		System.out.println(rr.roundTo(1).asDouble());
+		System.out.println();
+		System.out.println(nb.data.decimals.random(1, 10, 0.0, 105.0).roundTo(-1)
+				.groupBy(bd -> NambaMath.truncate(bd, -2)).max(Comparator.naturalOrder()));
 	}
 }

@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -233,5 +234,17 @@ public class DataList<T> implements Iterable<T>, NambaList {
 		return ObjectGrouping.ofClasses(this,
 				IntStream.range(0, size()).mapToObj(i -> Two.of(i, classifier.apply(this.value.get(i))))
 						.collect(Collectors.groupingBy(Two::b, Collectors.mapping(Two::a, Collectors.toList()))));
+	}
+
+	public Map<T, Integer> histogram() {
+		return this.groupBy(Function.identity()).hist();
+	}
+
+	public Map<T, Integer> valueCount() {
+		return this.histogram();
+	}
+
+	public Table histogramTable() {
+		return Table.of(this.groupBy(Function.identity()).hist());
 	}
 }

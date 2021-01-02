@@ -16,6 +16,7 @@
 package io.namba.arrays.agg;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import io.namba.arrays.DataList;
@@ -63,15 +65,27 @@ public class ObjectGrouping<K, V> implements Grouping {
 		return this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).stream().reduce(reducer);
 	}
 
+	public Optional<V> agg(K key, BinaryOperator<V> reducer) {
+		return this.reduce(key, reducer);
+	}
+
 	public V reduce(K key, V identity, BinaryOperator<V> reducer) {
 		return this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).stream().reduce(identity,
 				reducer);
+	}
+
+	public V agg(K key, V identity, BinaryOperator<V> reducer) {
+		return this.reduce(key, identity, reducer);
 	}
 
 	public Map<K, V> reduce(BinaryOperator<V> reducer) {
 		return this.groups.entrySet().stream()
 				.map(e -> Two.of(e.getKey(), this.reduce(e.getKey(), reducer).orElse(null)))
 				.collect(Collectors.toMap(Two::a, Two::b));
+	}
+
+	public Map<K, V> agg(BinaryOperator<V> reducer) {
+		return this.reduce(reducer);
 	}
 
 	public Table reduceTable(BinaryOperator<V> reducer) {
@@ -131,6 +145,18 @@ public class ObjectGrouping<K, V> implements Grouping {
 		return loc < 0 ? null : this.handle.getAt(loc);
 	}
 
+	@Override
+	public V nth(Object key, int n) {
+		int loc = this.nthLoc(key, n);
+		return loc < 0 ? null : this.handle.getAt(loc);
+	}
+
+	@Override
+	public V nthLast(Object key, int n) {
+		int loc = this.nthLastLoc(key, n);
+		return loc < 0 ? null : this.handle.getAt(loc);
+	}
+
 	public Map<K, V> first() {
 		return this.keys().stream().collect(Collectors.toMap(Function.identity(), this::first));
 	}
@@ -160,6 +186,11 @@ public class ObjectGrouping<K, V> implements Grouping {
 				.collect(Collectors.groupingBy(Entry::getKey, Collectors.summingInt(e -> e.getValue().size())));
 	}
 
+	public Map<K, Integer> countUnique() {
+		return this.groups.entrySet().stream().collect(Collectors.groupingBy(Entry::getKey,
+				Collectors.summingInt(e -> (int) e.getValue().stream().map(handle::getAt).distinct().count())));
+	}
+
 	public Table countTable() {
 		return Table.of(this.count());
 	}
@@ -178,6 +209,22 @@ public class ObjectGrouping<K, V> implements Grouping {
 		if (null == indices || indices.isEmpty())
 			return -1;
 		return indices.get(indices.size() - 1);
+	}
+
+	@Override
+	public int nthLoc(Object key, int n) {
+		List<Integer> indices = this.groups.get(key);
+		if (null == indices || indices.isEmpty())
+			return -1;
+		return n >= indices.size() ? -1 : indices.get(n);
+	}
+
+	@Override
+	public int nthLastLoc(Object key, int n) {
+		List<Integer> indices = this.groups.get(key);
+		if (null == indices || indices.isEmpty())
+			return -1;
+		return indices.size() - n - 1 < 0 ? -1 : indices.get(indices.size() - n);
 	}
 
 	public Set<Two<K, DataList<V>>> groups() {
@@ -204,5 +251,59 @@ public class ObjectGrouping<K, V> implements Grouping {
 
 	public Set<K> getEmptyKeys() {
 		return this.emptyKeys();
+	}
+
+	public Map<K, Integer> hist() {
+		return this.mapReduce(v -> 1, (a, b) -> a + b);
+	}
+
+	public Map<K, Integer> histogram() {
+		return this.hist();
+	}
+
+	public Map<K, Integer> valueCount() {
+		return this.hist();
+	}
+
+	public boolean all(K key, Predicate<V> test) {
+		return groups.getOrDefault(key, Collections.emptyList()).stream().map(this.handle::getAt).allMatch(test);
+	}
+
+	public Map<K, Boolean> all(Predicate<V> tester) {
+		return groups.entrySet().stream()
+				.map(e -> Two.of(e.getKey(), this.handle.getAt(e.getValue()).stream().allMatch(tester)))
+				.collect(Two.mapCollector());
+	}
+
+	public Table allTable(Predicate<V> test) {
+		return Table.of(this.all(test));
+	}
+
+	public boolean any(K key, Predicate<V> test) {
+		return groups.getOrDefault(key, Collections.emptyList()).stream().map(this.handle::getAt).anyMatch(test);
+	}
+
+	public Map<K, Boolean> any(Predicate<V> tester) {
+		return groups.entrySet().stream()
+				.map(e -> Two.of(e.getKey(), this.handle.getAt(e.getValue()).stream().anyMatch(tester)))
+				.collect(Two.mapCollector());
+	}
+
+	public Table anyTable(Predicate<V> test) {
+		return Table.of(this.all(test));
+	}
+
+	public Map<K, V> max(Comparator<V> comparator) {
+		return this.groups.entrySet().stream()
+				.map(entry -> Two.of(entry.getKey(),
+						entry.getValue().stream().map(this.handle::getAt).max(comparator).orElse(null)))
+				.collect(Two.mapCollector());
+	}
+
+	public Map<K, V> min(Comparator<V> comparator) {
+		return this.groups.entrySet().stream()
+				.map(entry -> Two.of(entry.getKey(),
+						entry.getValue().stream().map(this.handle::getAt).max(comparator).orElse(null)))
+				.collect(Two.mapCollector());
 	}
 }

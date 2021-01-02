@@ -56,4 +56,13 @@ public interface Grouping {
 	default int getDepth() {
 		return this.depth();
 	}
+
+	int nthLoc(Object key, int n);
+
+	int nthLastLoc(Object key, int n);
+
+	Object nthLast(Object key, int n);
+
+	Object nth(Object key, int n);
+
 }
