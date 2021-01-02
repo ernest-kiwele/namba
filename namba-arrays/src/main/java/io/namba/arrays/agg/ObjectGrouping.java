@@ -26,6 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.namba.arrays.DataList;
+import io.namba.arrays.Table;
 import io.namba.arrays.data.tuple.Two;
 
 /**
@@ -73,6 +74,10 @@ public class ObjectGrouping<K, V> implements Grouping {
 				.collect(Collectors.toMap(Two::a, Two::b));
 	}
 
+	public Table reduceTable(BinaryOperator<V> reducer) {
+		return Table.of(this.reduce(reducer));
+	}
+
 	public <U> U mapReduce(K key, Function<V, U> mapper, BinaryOperator<U> reducer) {
 		return this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).stream().map(mapper)
 				.reduce(reducer).orElse(null);
@@ -90,10 +95,18 @@ public class ObjectGrouping<K, V> implements Grouping {
 				.collect(Two.mapCollector());
 	}
 
+	public <U> Table mapReduceTable(Function<V, U> mapper, BinaryOperator<U> reducer) {
+		return Table.of(this.mapReduce(mapper, reducer));
+	}
+
 	public <U> Map<K, U> mapReduce(Function<V, U> mapper, U identity, BinaryOperator<U> reducer) {
 		return this.groups.entrySet().stream().map(
 				e -> Two.of(e.getKey(), this.handle.getAt(e.getValue()).stream().map(mapper).reduce(identity, reducer)))
 				.collect(Two.mapCollector());
+	}
+
+	public <U> Table mapReduceTable(Function<V, U> mapper, U identity, BinaryOperator<U> reducer) {
+		return Table.of(this.mapReduce(mapper, identity, reducer));
 	}
 
 	@Override
@@ -122,6 +135,10 @@ public class ObjectGrouping<K, V> implements Grouping {
 		return this.keys().stream().collect(Collectors.toMap(Function.identity(), this::first));
 	}
 
+	public Table firstTable() {
+		return Table.of(this.first());
+	}
+
 	public Map<K, V> getFirst() {
 		return this.first();
 	}
@@ -130,8 +147,21 @@ public class ObjectGrouping<K, V> implements Grouping {
 		return this.keys().stream().collect(Collectors.toMap(Function.identity(), this::last));
 	}
 
+	public Table lastTable() {
+		return Table.of(this.last());
+	}
+
 	public Map<K, V> getLast() {
 		return this.last();
+	}
+
+	public Map<K, Integer> count() {
+		return this.groups.entrySet().stream()
+				.collect(Collectors.groupingBy(Entry::getKey, Collectors.summingInt(e -> e.getValue().size())));
+	}
+
+	public Table countTable() {
+		return Table.of(this.count());
 	}
 
 	@Override

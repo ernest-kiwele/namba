@@ -669,6 +669,6 @@ public class StringList extends DataList<String> {
 		System.out.println(DateTimeArray
 				.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
 						LocalDateTime.of(LocalDate.now().minusDays(10), LocalTime.MIDNIGHT), 4)
-				.plus(Duration.ofDays(5)).format("yyyy-MM-dd hh:mm:ssa").groupBy(s -> s.substring(0, 4)).first());
+				.plus(Duration.ofDays(5)).format("yyyy-MM-dd hh:mm:ssa").groupBy(s -> s.substring(0, 4)).countTable());
 	}
 }

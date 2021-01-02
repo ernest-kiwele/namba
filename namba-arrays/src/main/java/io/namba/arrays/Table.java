@@ -64,6 +64,14 @@ public class Table implements NambaList {
 		return new Table(Arrays.asList(columns), index);
 	}
 
+	public static <K, V> Table of(Map<K, V> value) {
+		List<K> keys = new ArrayList<>(value.keySet());
+		List<V> values = keys.stream().map(value::get).collect(Collectors.toList());
+
+		return Table.of(Arrays.asList(new DataList<K>(DataType.OBJECT, keys), new DataList<V>(DataType.OBJECT, values)),
+				null);
+	}
+
 	private void validateColumnLengths(List<NambaList> cols) {
 		if (Objects.requireNonNull(cols, "column list is null").isEmpty()) {
 			throw new IllegalArgumentException("Column list is is empty");
