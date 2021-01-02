@@ -40,7 +40,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import io.namba.Namba;
 import io.namba.arrays.agg.DecimalGrouping;
-import io.namba.arrays.agg.ObjectGrouping;
 import io.namba.arrays.data.IndexedObject;
 import io.namba.arrays.data.IntData;
 import io.namba.arrays.data.tuple.Two;
@@ -1492,12 +1491,10 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	@Override
-	public <K> ObjectGrouping<K, BigDecimal> groupBy(Function<BigDecimal, K> classifier) {
+	public <K> DecimalGrouping<K> groupBy(Function<BigDecimal, K> classifier) {
 		return DecimalGrouping.of(this,
-				IntStream.range(0, size()).mapToObj(i -> Two.of(i, classifier.apply(this.value.get(i)))).collect(
-						Collectors.groupingBy(Two::b, Collectors.mapping(Two::a, Collectors.toList()))),
-				false);
-
+				IntStream.range(0, size()).mapToObj(i -> Two.of(i, classifier.apply(this.value.get(i))))
+						.collect(Collectors.groupingBy(Two::b, Collectors.mapping(Two::a, Collectors.toList()))));
 	}
 
 	@Override

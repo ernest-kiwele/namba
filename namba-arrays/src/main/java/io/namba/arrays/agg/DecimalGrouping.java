@@ -18,6 +18,7 @@ package io.namba.arrays.agg;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -197,5 +198,21 @@ public class DecimalGrouping<K> extends ObjectGrouping<K, BigDecimal> {
 
 	public Stream<Two<K, Collection<BigDecimal>>> stream() {
 		return this.groupStream();
+	}
+
+	public Map<K, BigDecimal> max() {
+		return this.max(Comparator.naturalOrder());
+	}
+
+	public Map<K, BigDecimal> min() {
+		return this.min(Comparator.naturalOrder());
+	}
+
+	public Table maxTable() {
+		return Table.of(this.max(Comparator.naturalOrder()));
+	}
+
+	public Table minTable() {
+		return Table.of(this.min(Comparator.naturalOrder()));
 	}
 }
