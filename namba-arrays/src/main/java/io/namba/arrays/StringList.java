@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -670,7 +669,6 @@ public class StringList extends DataList<String> {
 		System.out.println(DateTimeArray
 				.linearFit(LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
 						LocalDateTime.of(LocalDate.now().minusDays(10), LocalTime.MIDNIGHT), 4)
-				.plus(Duration.ofDays(5)).format("yyyy-MM-dd hh:mm:ssa").extractAll("([\\d]+)")
-				.explode(Function.identity()));
+				.plus(Duration.ofDays(5)).format("yyyy-MM-dd hh:mm:ssa").groupBy(s -> s.substring(0, 4)).first());
 	}
 }

@@ -15,6 +15,10 @@
 
 package io.namba.arrays.data.tuple;
 
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
 /**
  * 
  * @author Ernest Kiwele
@@ -62,6 +66,10 @@ public class Two<A, B> implements Tuple {
 		return b();
 	}
 
+	public static <A, B> Collector<Two<A, B>, ?, Map<A, B>> mapCollector() {
+		return Collectors.toMap(Two<A, B>::a, Two<A, B>::b);
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -91,5 +99,10 @@ public class Two<A, B> implements Tuple {
 		} else if (!b.equals(other.b))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "T[a=" + a + ", b=" + b + "]";
 	}
 }

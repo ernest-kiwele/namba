@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import io.namba.arrays.agg.ObjectGrouping;
+import io.namba.arrays.data.tuple.Two;
 import io.namba.arrays.range.IntRange;
 
 /**
@@ -225,5 +227,11 @@ public class DataList<T> implements Iterable<T>, NambaList {
 	@Override
 	public String toString() {
 		return this.value.stream().map(v -> v == null ? "" : v.toString()).collect(Collectors.joining("\n"));
+	}
+
+	public <K> ObjectGrouping<K, T> groupBy(Function<T, K> classifier) {
+		return ObjectGrouping.ofClasses(this,
+				IntStream.range(0, size()).mapToObj(i -> Two.of(i, classifier.apply(this.value.get(i))))
+						.collect(Collectors.groupingBy(Two::b, Collectors.mapping(Two::a, Collectors.toList()))));
 	}
 }

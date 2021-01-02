@@ -18,16 +18,42 @@ package io.namba.arrays.agg;
 /**
  * 
  * @author Ernest Kiwele
- *
  */
 public interface Grouping {
 
-	// TODO: Implement group values
-	// int groupCount();
-	//
-	// int count();
-	//
-	// List<Grouping> groups();
-	//
-	// int depth();
+	int groupCount();
+
+	default int getGroupCount() {
+		return this.groupCount();
+	}
+
+	Object first(Object key);
+
+	default Object getFirst(Object key) {
+		return this.first(key);
+	}
+
+	Object last(Object key);
+
+	default Object getLast(Object key) {
+		return this.last(key);
+	}
+
+	int firstLoc(Object key);
+
+	default int getFirstLoc(Object key) {
+		return this.firstLoc(key);
+	}
+
+	int lastLoc(Object key);
+
+	default int getLastLoc(Object key) {
+		return this.lastLoc(key);
+	}
+
+	int depth();
+
+	default int getDepth() {
+		return this.depth();
+	}
 }
