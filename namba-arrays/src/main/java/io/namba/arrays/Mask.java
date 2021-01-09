@@ -15,9 +15,15 @@
 
 package io.namba.arrays;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import io.namba.arrays.data.tuple.Two;
 
 /**
  * 
@@ -191,5 +197,90 @@ public class Mask implements NambaList {
 			r[i] = !this.value[i];
 
 		return Mask.of(r);
+	}
+
+	public Mask negative() {
+		return this.negate();
+	}
+
+	public Mask bitwiseNegate() {
+		return this.negate();
+	}
+
+	public <E, C extends NambaList> C apply(IntFunction<E> trueFunction, IntFunction<E> falseFunction,
+			Function<List<E>, C> listGenerator) {
+		List<E> values = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			values.add(this.value[i] ? trueFunction.apply(i) : falseFunction.apply(i));
+		}
+
+		return listGenerator.apply(values);
+	}
+
+	public <E, C extends NambaList> C apply(IntFunction<E> trueFunction, Function<List<E>, C> listGenerator) {
+		List<E> values = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			values.add(this.value[i] ? trueFunction.apply(i) : null);
+		}
+
+		return listGenerator.apply(values);
+	}
+
+	public <E> List<E> apply(IntFunction<E> trueFunction, IntFunction<E> falseFunction) {
+		List<E> values = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			values.add(this.value[i] ? trueFunction.apply(i) : falseFunction.apply(i));
+		}
+
+		return values;
+	}
+
+	public <E> List<E> apply(IntFunction<E> trueFunction) {
+		List<E> values = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			values.add(this.value[i] ? trueFunction.apply(i) : null);
+		}
+
+		return values;
+	}
+
+	public <E> List<E> applyWhereTrue(IntFunction<E> function) {
+		List<E> values = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			if (this.value[i])
+				values.add(function.apply(i));
+		}
+
+		return values;
+	}
+
+	public <E, C extends NambaList> C applyWhereTrue(IntFunction<E> f, Function<List<E>, C> listGenerator) {
+		List<E> values = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			if (this.value[i])
+				values.add(f.apply(i));
+		}
+
+		return listGenerator.apply(values);
+	}
+
+	public <E, C extends NambaList> Two<C, C> partition(DataList<E> data, Function<List<E>, C> listGenerator) {
+		List<E> trues = new ArrayList<>();
+		List<E> falses = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			if (this.value[i])
+				trues.add(data.getAt(i));
+			else
+				falses.add(data.getAt(i));
+		}
+
+		return Two.of(listGenerator.apply(trues), listGenerator.apply(falses));
 	}
 }
