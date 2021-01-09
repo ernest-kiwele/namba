@@ -17,6 +17,7 @@ package io.namba.arrays;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.Function;
@@ -58,6 +60,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	public static final MathContext DEFAULT_MATH_CONTEXT = MathContext.DECIMAL64;
 	public final MathContext mathContext;
 	public static final BigDecimal MINUS_ONE = BigDecimal.ONE.negate();
+	private static final DecimalFormat DEFAULT_FORMAT = new DecimalFormat("#,###.######");
 
 	protected DecimalList(List<BigDecimal> is, Index index, MathContext mathContext) {
 		super(DataType.BIGDECIMAL, is, index);
@@ -830,6 +833,10 @@ public class DecimalList extends DataList<BigDecimal> {
 		return test.test(this);
 	}
 
+	public Mask test(DecimalPredicate test) {
+		return test.test(this);
+	}
+
 	public boolean all(DecimalTest test) {
 		return test.all(this);
 	}
@@ -1158,21 +1165,35 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public Table hist() {
-		Map<BigDecimal, Long> groups = this.value.stream()
-				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+		Map<BigDecimal, Integer> groups = this.histogram();
 
 		BigDecimal[] keys = new BigDecimal[groups.size()];
 		int[] counts = new int[groups.size()];
 
-		List<Entry<BigDecimal, Long>> lst = groups.entrySet().stream().collect(Collectors.toList());
+		List<Two<BigDecimal, Long>> lst = this.valueCounts();
 
 		for (int i = 0; i < lst.size(); i++) {
-			Entry<BigDecimal, Long> entry = lst.get(i);
-			keys[i] = entry.getKey();
-			counts[i] = entry.getValue().intValue(); // should never overflow
+			Two<BigDecimal, Long> entry = lst.get(i);
+			keys[i] = entry.a();
+			counts[i] = entry.b().intValue(); // should never overflow
 		}
 
 		return Table.of(null, DecimalList.of(keys), IntList.of(counts));
+	}
+
+	public Table normalizedHist(boolean percentage) {
+		List<Two<BigDecimal, Double>> lst = this.normalizedValueCounts(percentage);
+
+		BigDecimal[] keys = new BigDecimal[lst.size()];
+		double[] counts = new double[lst.size()];
+
+		for (int i = 0; i < lst.size(); i++) {
+			Two<BigDecimal, Double> entry = lst.get(i);
+			keys[i] = entry.a();
+			counts[i] = entry.b().intValue(); // should never overflow
+		}
+
+		return Table.of(null, DecimalList.of(keys), DoubleList.of(counts));
 	}
 
 	/*
@@ -1321,7 +1342,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	public BigDecimal median() {
 
 		DecimalList sorted = this.sorted();
-		DecimalList withoutNa = sorted.getAt(sorted.isNa());
+		DecimalList withoutNa = sorted.getAt(sorted.isNa().negate());
 
 		if (withoutNa.size() == 0)
 			return null;
@@ -1479,7 +1500,7 @@ public class DecimalList extends DataList<BigDecimal> {
 
 		v.sort(comparator);
 
-		return DecimalList.of(v, null);
+		return new DecimalList(v);
 	}
 
 	public DecimalList sorted() {
@@ -1499,8 +1520,82 @@ public class DecimalList extends DataList<BigDecimal> {
 
 	@Override
 	public StringList string() {
-		return StringList
-				.of(this.value.stream().map(o -> o == null ? null : o.toPlainString()).collect(Collectors.toList()));
+		return StringList.of(
+				this.value.stream().map(o -> o == null ? null : DEFAULT_FORMAT.format(o)).collect(Collectors.toList()));
+	}
+
+	public StringList string(DecimalFormat numberFormat) {
+		return StringList.of(
+				this.value.stream().map(o -> o == null ? null : numberFormat.format(o)).collect(Collectors.toList()));
+	}
+
+	// Cookbook
+
+	public Two<DecimalList, DecimalList> partition(DecimalPredicate predicate) {
+		return Objects.requireNonNull(predicate, "predicate may not be null").test(this).partition(this,
+				DecimalList::new);
+	}
+
+	public Two<DecimalList, DecimalList> partition(Mask mask) {
+		return Objects.requireNonNull(mask, "mask may not be null").partition(this, DecimalList::new);
+	}
+
+	public DecimalList applyWhere(Mask mask, BigDecimal newVal) {
+		return new DecimalList(this.applyWithIndex((i, val) -> mask.getAt(i) ? newVal : val));
+	}
+
+	public DecimalList applyWhere(Mask mask, BiFunction<Integer, BigDecimal, BigDecimal> mapper) {
+		return new DecimalList(this.applyWithIndex((i, val) -> mask.getAt(i) ? mapper.apply(i, val) : val));
+	}
+
+	public DecimalList applyWhere(Mask mask, BigDecimal trueVal, BigDecimal falseVal) {
+		return new DecimalList(this.applyWithIndex((i, val) -> mask.getAt(i) ? trueVal : falseVal));
+	}
+
+	public DecimalList putAt(Mask mask, Two<BigDecimal, BigDecimal> values) {
+		Objects.requireNonNull(values, "replacement values may not be null");
+		return this.applyWhere(mask, values.a(), values.b());
+	}
+
+	public DecimalList putAt(Mask mask, BigDecimal newVal) {
+		return this.applyWhere(mask, newVal);
+	}
+
+	public DecimalList applyWhere(Predicate<BigDecimal> test, BigDecimal newVal) {
+		return new DecimalList(this.apply(val -> test.test(val) ? newVal : null));
+	}
+
+	public DecimalList putAt(Predicate<BigDecimal> test, BigDecimal newVal) {
+		return this.applyWhere(test, newVal);
+	}
+
+	public DecimalList applyWhere(Predicate<BigDecimal> test, BigDecimal trueValue, BigDecimal falseValue) {
+		return new DecimalList(this.apply(val -> test.test(val) ? trueValue : falseValue));
+	}
+
+	public DecimalList putAt(Predicate<BigDecimal> test, Two<BigDecimal, BigDecimal> values) {
+		Objects.requireNonNull(values, "replacement values may not be null");
+		return this.applyWhere(test, values.a(), values.b());
+	}
+
+	public DecimalList applyWhere(Predicate<BigDecimal> test, UnaryOperator<BigDecimal> valueMapper) {
+		return new DecimalList(this.test(test).applyWhereTrue(i -> valueMapper.apply(this.getAt(i))));
+	}
+
+	public DecimalList getAt(Predicate<BigDecimal> predicate) {
+		return this.getAt(this.test(predicate));
+	}
+
+	public DecimalList getAt(int from, int to) {
+		return this.getAt(IntRange.of(from, to));
+	}
+
+	public DecimalList putAt(Predicate<BigDecimal> test, UnaryOperator<BigDecimal> valueMapper) {
+		return this.applyWhere(test, valueMapper);
+	}
+
+	public class LocationAccessor {
+
 	}
 
 	public class IndexAccessor {
@@ -1520,16 +1615,11 @@ public class DecimalList extends DataList<BigDecimal> {
 	public static void main(String[] args) {
 		Namba nb = Namba.instance();
 
-		DecimalList rr = nb.data.decimals.random(1, 10, 2.0, 3025.0);
-		System.out.println(rr.asDouble());
-		System.out.println();
-		System.out.println(rr.roundTo(-1).asDouble());
-		System.out.println(rr.roundTo(2).asDouble());
-		System.out.println();
-		System.out.println(rr.roundTo(4).asDouble());
-		System.out.println(rr.roundTo(1).asDouble());
-		System.out.println();
-		System.out.println(nb.data.decimals.random(1, 10, 0.0, 105.0).roundTo(-1)
-				.groupBy(bd -> NambaMath.truncate(bd, -2)).max(Comparator.naturalOrder()));
+		DecimalList lst = nb.data.decimals.range(1000000, -2000000000, 12200525).roundTo(-2);
+		System.out.println(lst);
+		System.out.println("mode: " + DEFAULT_FORMAT.format(lst.mode()));
+		System.out.println("median: " + DEFAULT_FORMAT.format(lst.median()));
+		System.out.println("mean: " + DEFAULT_FORMAT.format(lst.mean()));
+		System.out.println("ptp: " + DEFAULT_FORMAT.format(lst.ptp()));
 	}
 }
