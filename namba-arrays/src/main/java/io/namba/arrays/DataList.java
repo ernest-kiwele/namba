@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -43,6 +44,7 @@ public class DataList<T> implements Iterable<T>, NambaList {
 	protected final List<T> value;
 	protected final DataType dataType;
 	protected final Index index;
+	protected String name;
 
 	protected DataList(DataType dataType, List<T> is) {
 		this.value = Collections.unmodifiableList(is);
@@ -58,6 +60,16 @@ public class DataList<T> implements Iterable<T>, NambaList {
 		this.value = Collections.unmodifiableList(is);
 		this.dataType = dataType;
 		this.index = index;
+	}
+
+	public <L extends NambaList> L name(String n) {
+		this.name = n;
+		return (L) this;
+	}
+
+	@Override
+	public String getName() {
+		return this.name;
 	}
 
 	@Override
@@ -142,6 +154,16 @@ public class DataList<T> implements Iterable<T>, NambaList {
 
 	public DataList<T> apply(UnaryOperator<T> op) {
 		return this.map(op::apply);
+	}
+
+	public DataList<T> applyWithIndex(BiFunction<Integer, T, T> op) {
+		List<T> res = new ArrayList<>();
+
+		for (int i = 0; i < size(); i++) {
+			res.add(op.apply(i, this.getAt(i)));
+		}
+
+		return new DataList<>(this.dataType, res);
 	}
 
 	// tests
@@ -246,5 +268,21 @@ public class DataList<T> implements Iterable<T>, NambaList {
 
 	public Table histogramTable() {
 		return Table.of(this.groupBy(Function.identity()).hist());
+	}
+
+	public List<Two<T, Long>> valueCounts() {
+		return this.value.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet()
+				.stream().map(e -> Two.of(e.getKey(), e.getValue())).collect(Collectors.toList());
+	}
+
+	public List<Two<T, Double>> normalizedValueCounts(boolean percentage) {
+
+		if (this.size() == 0)
+			return Collections.emptyList();
+
+		double size = percentage ? size() / 100 : size();
+
+		return this.value.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet()
+				.stream().map(e -> Two.of(e.getKey(), e.getValue() / size)).collect(Collectors.toList());
 	}
 }
