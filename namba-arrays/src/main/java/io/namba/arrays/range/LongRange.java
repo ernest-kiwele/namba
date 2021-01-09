@@ -43,7 +43,7 @@ public class LongRange {
 	}
 
 	public static LongRange of(long start, long end, long step) {
-		return new LongRange(start, end, (long) Math.signum((double) end - start) * step);
+		return new LongRange(start, end, (long) Math.signum((double) end - start) * Math.abs(step));
 	}
 
 	public static LongRange of(long end) {
@@ -65,7 +65,7 @@ public class LongRange {
 	}
 
 	public static void main(String[] args) {
-		LongRange.of(140, 40, 3).forEach(System.out::println);
+		LongRange.of(140, 240, -3).forEach(System.out::println);
 	}
 
 	public static class LongRangeIterator {

@@ -41,7 +41,7 @@ public class IntRange {
 	}
 
 	public static IntRange of(int start, int end, int step) {
-		return new IntRange(start, end, (int) Math.signum((double) end - start) * step);
+		return new IntRange(start, end, (int) Math.signum((double) end - start) * Math.abs(step));
 	}
 
 	public static IntRange of(int end) {
