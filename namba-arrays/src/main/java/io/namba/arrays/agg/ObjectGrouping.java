@@ -303,7 +303,33 @@ public class ObjectGrouping<K, V> implements Grouping {
 	public Map<K, V> min(Comparator<V> comparator) {
 		return this.groups.entrySet().stream()
 				.map(entry -> Two.of(entry.getKey(),
-						entry.getValue().stream().map(this.handle::getAt).max(comparator).orElse(null)))
+						entry.getValue().stream().map(this.handle::getAt).min(comparator).orElse(null)))
 				.collect(Two.mapCollector());
+	}
+
+	public Map<K, Integer> idxMax(Comparator<V> comparator) {
+		return this.groups.entrySet().stream()
+				.map(entry -> Two.of(entry.getKey(),
+						entry.getValue().stream().map(i -> Two.of(i, this.handle.getAt(i)))
+								.max((a, b) -> comparator.compare(a.b(), b.b())).map(Two::a).orElse(null)))
+				.collect(Two.mapCollector());
+	}
+
+	public Map<K, Integer> idxMin(Comparator<V> comparator) {
+		return this.groups.entrySet().stream()
+				.map(entry -> Two.of(entry.getKey(),
+						entry.getValue().stream().map(i -> Two.of(i, this.handle.getAt(i)))
+								.min((a, b) -> comparator.compare(a.b(), b.b())).map(Two::a).orElse(null)))
+				.collect(Two.mapCollector());
+	}
+
+	public int idxMax(K key, Comparator<V> comparator) {
+		return this.groups.get(key).stream().map(i -> Two.of(i, this.handle.getAt(i)))
+				.max((a, b) -> comparator.compare(a.b(), b.b())).map(Two::a).orElse(-1);
+	}
+
+	public int idxMin(K key, Comparator<V> comparator) {
+		return this.groups.get(key).stream().map(i -> Two.of(i, this.handle.getAt(i)))
+				.min((a, b) -> comparator.compare(a.b(), b.b())).map(Two::a).orElse(-1);
 	}
 }
