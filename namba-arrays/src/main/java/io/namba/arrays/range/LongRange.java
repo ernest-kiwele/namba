@@ -26,10 +26,10 @@ import java.util.stream.LongStream;
  */
 public class LongRange {
 
-	private long start = 0;
-	private long end;
-	private long step = 1;
-	private long signum;
+	private final long start;
+	private final long end;
+	private final long step;
+	private final long signum;
 
 	private LongRange(long start, long end, long step) {
 		if (0 == step) {
@@ -38,12 +38,18 @@ public class LongRange {
 
 		this.start = start;
 		this.end = end;
-		this.step = step;
-		this.signum = (long) Math.signum(step);
+
+		// don't work out the sign of step if start == end (because it would be zero.
+		if (end == start) {
+			this.step = step;
+		} else {
+			this.step = (long) Math.signum((double) end - start) * Math.abs(step);
+		}
+		this.signum = this.step;
 	}
 
 	public static LongRange of(long start, long end, long step) {
-		return new LongRange(start, end, (long) Math.signum((double) end - start) * Math.abs(step));
+		return new LongRange(start, end, step);
 	}
 
 	public static LongRange of(long end) {
@@ -62,10 +68,6 @@ public class LongRange {
 	public LongStream stream() {
 		LongRangeIterator it = LongRangeIterator.of(this);
 		return LongStream.iterate(it.next(), i -> it.hasNext(), i -> it.next());
-	}
-
-	public static void main(String[] args) {
-		LongRange.of(140, 240, -3).forEach(System.out::println);
 	}
 
 	public static class LongRangeIterator {

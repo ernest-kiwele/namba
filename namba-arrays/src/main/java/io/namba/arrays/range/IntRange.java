@@ -24,10 +24,10 @@ import java.util.stream.IntStream;
  * @author Ernest Kiwele
  */
 public class IntRange {
-	private int start = 0;
-	private int end;
-	private int step = 1;
-	private int signum;
+	private final int start;
+	private final int end;
+	private final int step;
+	private final int signum;
 
 	private IntRange(int start, int end, int step) {
 		if (0 == step) {
@@ -36,12 +36,18 @@ public class IntRange {
 
 		this.start = start;
 		this.end = end;
-		this.step = step;
-		this.signum = (int) Math.signum(step);
+
+		// if end == start, then inferring signum may result in step == 0.
+		if (end == start) {
+			this.step = step;
+		} else {
+			this.step = (int) Math.signum((double) end - start) * Math.abs(step);
+		}
+		this.signum = (int) Math.signum(this.step);
 	}
 
 	public static IntRange of(int start, int end, int step) {
-		return new IntRange(start, end, (int) Math.signum((double) end - start) * Math.abs(step));
+		return new IntRange(start, end, step);
 	}
 
 	public static IntRange of(int end) {
