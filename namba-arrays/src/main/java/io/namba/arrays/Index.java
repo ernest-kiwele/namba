@@ -18,6 +18,7 @@ package io.namba.arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -65,6 +66,7 @@ public class Index {
 	}
 
 	public static <T> Index objectIndex(List<T> values, Function<T, Object> indexer) {
+		Objects.requireNonNull(indexer, "indexer function may not be null");
 		List<IndexLevel> levels = IntStream.range(0, values.size())
 				.mapToObj(i -> Pair.of(indexer.apply(values.get(i)), i))
 				.collect(Collectors.groupingBy(Pair::getLeft,
