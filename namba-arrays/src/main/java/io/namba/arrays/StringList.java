@@ -57,6 +57,13 @@ public class StringList extends DataList<String> {
 		return new StringList(new ArrayList<>(str));
 	}
 
+	public StringList insertAtHead(List<String> values) {
+		List<String> all = new ArrayList<>(values);
+		all.addAll(this.value);
+
+		return new StringList(all);
+	}
+
 	public StringList prepend(String other) {
 		List<String> copy = new ArrayList<>(this.value.size());
 		for (String s : this.value) {
