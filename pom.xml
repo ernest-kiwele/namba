@@ -9,6 +9,7 @@
 	<name>Namba parent</name>
 	<description>Namba parent</description>
 
+	<!-- Example change to the file -->
 	<properties>
 		<jackson.version>2.11.3</jackson.version>
 		<commons.lang.version>3.11</commons.lang.version>
