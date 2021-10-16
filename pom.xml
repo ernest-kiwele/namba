@@ -11,11 +11,7 @@
 
 	<!-- Example change to the file -->
 	<properties>
-		<jackson.version>2.11.3</jackson.version>
 		<commons.lang.version>3.11</commons.lang.version>
-		<vert.x.version>3.9.4</vert.x.version>
-		<groovy.version>3.0.6</groovy.version>
-
 		<lombok.version>1.18.16</lombok.version>
 
 		<junit.jupiter.version>5.7.0</junit.jupiter.version>
@@ -122,9 +118,6 @@
 		</plugins>
 	</build>
 	<modules>
-		<module>namba-arrays</module>
-		<module>namba-datasources</module>
 		<module>namba-core</module>
-		<module>namba-cli</module>
 	</modules>
 </project>
