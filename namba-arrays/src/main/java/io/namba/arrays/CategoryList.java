@@ -125,21 +125,43 @@ public class CategoryList implements NambaList {
 		return new CategoryList(th.a(), this.value, newMap);
 	}
 
-	// TODO:Implement other methods
-	// public CategoryList reorder(List<String> newOrder) {
-	//
-	// }
-	//
-	// public CategoryList sorted() {
-	//
-	// }
-	//
-	// public CategoryList sortedReverse() {
-	//
-	// }
+	public CategoryList reorder(List<String> newOrder) {
+		// TODO: implement
+		return null;
+	}
+
+	public CategoryList sorted() {
+		// TODO: implement
+		return null;
+	}
+
+	public CategoryList sortedReverse() {
+		// TODO: implement
+		return null;
+	}
 
 	public List<String> levels() {
 		return Arrays.asList(this.levels);
+	}
+
+	@Override
+	public IntList asInt() {
+		return null;
+	}
+
+	@Override
+	public LongList asLong() {
+		return null;
+	}
+
+	@Override
+	public DoubleList asDouble() {
+		return null;
+	}
+
+	@Override
+	public Mask asMask() {
+		return null;
 	}
 
 	// public CategoryList renameCategories(Map<String, String> nameMapping) {
@@ -149,4 +171,5 @@ public class CategoryList implements NambaList {
 	// public CategoryList renameCategory(String oldName, String newName) {
 	//
 	// }
+
 }

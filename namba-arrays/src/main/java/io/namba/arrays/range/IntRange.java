@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
  * @author Ernest Kiwele
  */
 public class IntRange {
+
 	private final int start;
 	private final int end;
 	private final int step;
@@ -101,5 +102,10 @@ public class IntRange {
 			this.i = tmp;
 			return tmp;
 		}
+	}
+
+	@Override
+	public String toString() {
+		return this.start + ":" + this.end + ":" + this.step;
 	}
 }

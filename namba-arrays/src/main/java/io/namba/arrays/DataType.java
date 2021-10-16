@@ -21,6 +21,7 @@ import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -56,7 +57,9 @@ public enum DataType {
 
 	BOOLEAN("boolean", "Boolean", "Boolean", boolean.class),
 
-	OBJECT("object", "Object", "Arbitrary user-defined element type", Object.class);
+	OBJECT("object", "Object", "Arbitrary user-defined element type", Object.class),
+
+	LIST("list", "List", "List of arbitrary objects", List.class);
 
 	private static final Map<String, DataType> mapping = new ConcurrentHashMap<>();
 

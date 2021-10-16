@@ -13,19 +13,19 @@
  * limitations under the License.
  */
 
-package io.namba.arrays.agg;
-
-import java.util.Map;
+package io.namba.arrays;
 
 /**
  * 
  * @author Ernest Kiwele
  *
  */
-public class GroupLevel2 implements Grouping {
-	protected final Map<Object, GroupLevel1> group;
+public enum JoinType {
+	INNER,
 
-	private GroupLevel2(Map<Object, GroupLevel1> group) {
-		this.group = group;
-	}
+	LEFT,
+
+	RIGHT,
+
+	OUTER;
 }

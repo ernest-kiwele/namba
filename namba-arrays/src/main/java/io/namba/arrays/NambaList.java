@@ -15,8 +15,6 @@
 
 package io.namba.arrays;
 
-import java.util.List;
-
 /**
  * 
  * @author Ernest Kiwele
@@ -52,4 +50,20 @@ public interface NambaList {
 	NambaList getAt(int[] loc);
 
 	NambaList repeat(int n);
+
+	// casting
+	/**
+	 * Convert this array into an int list array. If the current data type is not
+	 * compatible with integer, null is returned. If individual values are not
+	 * compatible with integer, corresponding data is set to null.
+	 * 
+	 * @return null if array cannot be converted, conversion result otherwise.
+	 */
+	IntList asInt();
+
+	LongList asLong();
+
+	DoubleList asDouble();
+
+	Mask asMask();
 }

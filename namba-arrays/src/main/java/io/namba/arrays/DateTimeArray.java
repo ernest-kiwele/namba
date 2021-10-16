@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,6 +36,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.StringUtils;
+
+import io.namba.arrays.data.tuple.Two;
 
 /**
  * 
@@ -622,6 +625,75 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 		return Mask.of(v);
 	}
 
+	// Agg
+	public LocalDateTime min() {
+		return this.stream().filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+	}
+
+	public LocalDateTime max() {
+		return this.stream().filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
+	}
+
+	//
+
+	public Map<LocalDateTime, int[]> groupBy(ChronoUnit frequency, LocalDateTime offset) {
+		return this.groupBy(frequency.getDuration(), offset);
+	}
+
+	public Map<LocalDateTime, int[]> groupBy(ChronoUnit frequency) {
+		return this.groupBy(frequency, this.min());
+	}
+
+	public Map<LocalDateTime, int[]> groupBy(Duration duration, LocalDateTime offset) {
+		return IntStream.range(0, this.size()).mapToObj(i -> Two.of(this.groupKey(offset, this.getAt(i), duration), i))
+				.collect(Collectors.groupingBy(Two::a, Collectors.mapping(Two::b, Collectors
+						.collectingAndThen(Collectors.toList(), l -> l.stream().mapToInt(v -> v).toArray()))));
+	}
+
+	public Map<LocalDateTime, int[]> groupBy(Duration duration) {
+		return this.groupBy(duration, this.min());
+	}
+
+	public Map<LocalDateTime, List<LocalDateTime>> groupValuesBy(ChronoUnit frequency, LocalDateTime offset) {
+		return stream().collect(Collectors.groupingBy(e -> this.groupKey(offset, e, frequency), Collectors.toList()));
+	}
+
+	public Map<LocalDateTime, List<LocalDateTime>> groupValuesBy(ChronoUnit frequency) {
+		return this.groupValuesBy(frequency, this.min());
+	}
+
+	public Map<LocalDateTime, List<LocalDateTime>> groupValuesBy(Duration duration, LocalDateTime offset) {
+		return stream().collect(Collectors.groupingBy(e -> this.groupKey(offset, e, duration), Collectors.toList()));
+	}
+
+	public Map<LocalDateTime, List<LocalDateTime>> groupValuesBy(Duration duration) {
+		return this.groupValuesBy(duration, this.min());
+	}
+
+	private LocalDateTime groupKey(LocalDateTime base, LocalDateTime dt, Duration d) {
+		return dt.minus(ChronoUnit.NANOS.between(base, dt) % d.toNanos(), ChronoUnit.NANOS);
+	}
+
+	private LocalDateTime groupKey(LocalDateTime base, LocalDateTime dt, ChronoUnit unit) {
+		// this is based on the flooring of the diff returned by unit.between.
+		return base.plus(unit.between(base, dt), unit);
+	}
+
+	/**
+	 * difference between previous row and current row.
+	 * 
+	 * @param unit
+	 * @return
+	 */
+	public LongList diff(ChronoUnit unit) {
+		DataList<LocalDateTime> oneOff = this.shift();
+		DataList<Long> lst = this.zipTo(oneOff, unit::between);
+		return lst.asLong();
+	}
+
+	public LongList diff(String unit) {
+		return this.diff(ChronoUnit.valueOf(unit));
+	}
 	/*
 	 * Select final periods of time series data based on a date offset.
 	 * 
@@ -644,6 +716,7 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 				LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.MIDNIGHT), 8).plus(Duration.ofDays(5));
 		System.out.println(dta);
 		System.out.println();
-		System.out.println(dta.daysInMonth());
+		System.out.println(
+				dta.groupValuesBy(ChronoUnit.YEARS, LocalDateTime.of(LocalDate.of(2016, 1, 1), LocalTime.MIDNIGHT)));
 	}
 }

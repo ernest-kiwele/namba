@@ -143,6 +143,20 @@ public class DataList<T> implements Iterable<T>, NambaList {
 		return new DataList<>(this.dataType, list);
 	}
 
+	public <U> DataList<U> zipTo(DataList<T> other, BiFunction<T, T, U> op) {
+		if (this.size() != other.size()) {
+			throw new IllegalStateException("Arrays are of different sizes");
+		}
+
+		List<U> list = new ArrayList<>();
+		Iterator<T> it1 = this.iterator(), it2 = other.iterator();
+		while (it1.hasNext()) {
+			list.add(op.apply(it1.next(), it2.next()));
+		}
+
+		return new DataList<>(DataType.OBJECT, list);
+	}
+
 	public static <T> DataList<T> zip(DataList<T> a, DataList<T> b, BinaryOperator<T> op) {
 		return a.zip(b, op);
 	}
@@ -284,5 +298,126 @@ public class DataList<T> implements Iterable<T>, NambaList {
 
 		return this.value.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet()
 				.stream().map(e -> Two.of(e.getKey(), e.getValue() / size)).collect(Collectors.toList());
+	}
+
+	public DateTimeArray asDateTime() {
+		if (this instanceof DateTimeArray) {
+			return (DateTimeArray) this;
+		}
+
+		throw new IllegalStateException("Cannot cast from " + getClass().getSimpleName() + " to category list");
+	}
+
+	public DecimalList asDecimal() {
+		if (this instanceof DecimalList) {
+			return (DecimalList) this;
+		}
+
+		throw new IllegalStateException("Cannot cast from " + getClass().getSimpleName() + " to decimal list");
+	}
+
+	@Override
+	public IntList asInt() {
+		int[] val;
+		if (Number.class.isAssignableFrom(this.dataType.getJavaType())) {
+			val = new int[this.size()];
+			for (int i = 0; i < this.size(); i++) {
+				Number n = (Number) this.getAt(i);
+				val[i] = null == n ? 0 : n.intValue();
+			}
+		} else if (this.dataType == DataType.STRING) {
+			val = new int[this.size()];
+			for (int i = 0; i < this.size(); i++) {
+				String n = (String) this.getAt(i);
+				val[i] = null == n ? 0 : Integer.parseInt(n.trim());
+			}
+		} else {
+			return null;
+		}
+
+		return IntList.of(val);
+	}
+
+	@Override
+	public LongList asLong() {
+		long[] val;
+		if (Number.class.isAssignableFrom(this.dataType.getJavaType())) {
+			val = new long[this.size()];
+			for (int i = 0; i < this.size(); i++) {
+				Number n = (Number) this.getAt(i);
+				val[i] = null == n ? 0 : n.longValue();
+			}
+		} else if (this.dataType == DataType.STRING) {
+			val = new long[this.size()];
+			for (int i = 0; i < this.size(); i++) {
+				String n = (String) this.getAt(i);
+				val[i] = null == n ? 0 : Long.parseLong(n.trim());
+			}
+		} else if (this.dataType == DataType.OBJECT) {
+			val = new long[this.size()];
+			for (int i = 0; i < this.size(); i++) {
+				Object n = this.getAt(i);
+				if (n instanceof Long) {
+					val[i] = (long) n;
+				}
+			}
+		} else {
+			return null;
+		}
+
+		return LongList.of(val);
+	}
+
+	@Override
+	public DoubleList asDouble() {
+		double[] val;
+		if (Number.class.isAssignableFrom(this.dataType.getJavaType())) {
+			val = new double[this.size()];
+			for (int i = 0; i < this.size(); i++) {
+				Number n = (Number) this.getAt(i);
+				val[i] = null == n ? 0 : n.doubleValue();
+			}
+		} else if (this.dataType == DataType.STRING) {
+			val = new double[this.size()];
+			for (int i = 0; i < this.size(); i++) {
+				String n = (String) this.getAt(i);
+				val[i] = null == n ? 0 : Double.parseDouble(n.trim());
+			}
+		} else {
+			return null;
+		}
+
+		return DoubleList.of(val);
+	}
+
+	public Mask isNull() {
+		boolean[] b = new boolean[this.size()];
+		for (int i = 0; i < this.size(); i++) {
+			b[i] = this.getAt(i) == null;
+		}
+		return Mask.of(b);
+	}
+
+	@Override
+	public Mask asMask() {
+		return this.isNull().negate();
+	}
+
+	public DataList<T> shift() {
+		return this.shift(1);
+	}
+
+	public DataList<T> shift(int n) {
+		List<T> list = new ArrayList<>();
+
+		for (int i = 0; i < n; i++) {
+			list.add(null);
+		}
+
+		for (int i = n; i < this.size(); i++) {
+			list.add(this.getAt(i - n));
+		}
+
+		return new DataList<>(this.dataType, list);
 	}
 }

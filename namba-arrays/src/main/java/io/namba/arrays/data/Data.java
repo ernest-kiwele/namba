@@ -23,6 +23,7 @@ public class Data {
 	private static final Data instance = new Data();
 
 	public final IntData ints = IntData.instance();
+	public final LongData longs = LongData.instance();
 	public final DoubleData doubles = DoubleData.instance();
 	public final DecimalData decimals = DecimalData.instance();
 

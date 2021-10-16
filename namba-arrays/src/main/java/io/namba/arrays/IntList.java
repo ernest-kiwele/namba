@@ -30,9 +30,11 @@ import java.util.function.IntFunction;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import io.namba.Namba;
 import io.namba.arrays.data.IntPair;
+import io.namba.arrays.data.tuple.Two;
 import io.namba.arrays.range.IntRange;
 import io.namba.functions.IntRef;
 import io.namba.functions.IntRef.IntListPredicate;
@@ -155,6 +157,10 @@ public class IntList implements NambaList {
 
 	public IntStream stream() {
 		return Arrays.stream(value);
+	}
+
+	public Stream<Two<Integer, Integer>> indexedStream() {
+		return IntStream.range(0, size()).mapToObj(i -> Two.of(i, this.getAt(i)));
 	}
 
 	// operations
@@ -1007,13 +1013,24 @@ public class IntList implements NambaList {
 		}
 	}
 
+	@Override
+	public IntList asInt() {
+		return this;
+	}
+
+	@Override
+	public Mask asMask() {
+		return Mask.of(this.size(), i -> this.value[i] != 0);
+	}
+
 	public static void main(String[] args) {
 		Namba nb = Namba.instance();
 
 		IntList rr = nb.data.ints.range(1, 100).repeat(2);
 
 		long s = System.currentTimeMillis();
-		System.out.println(rr.where(i -> i.lt(7)).gt(2).odd().list());
-		System.out.println(System.currentTimeMillis() - s);
+		System.out.println(rr.where(i -> i.lt(17)).gt(12).odd().list());
+
+		System.out.println(nb.data.doubles.linSpace(4, 2, 4).asDecimal());
 	}
 }

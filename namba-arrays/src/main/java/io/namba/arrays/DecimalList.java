@@ -1113,6 +1113,57 @@ public class DecimalList extends DataList<BigDecimal> {
 		return of(v);
 	}
 
+	/**
+	 * Apply a row-wise cumulative computation of values using the given function.
+	 * For the first value, the function is called with null.
+	 * 
+	 * @param aggregator
+	 *            The function computing accumulated values.
+	 * @return A new DecimalList object with the result of that accumulation.
+	 */
+	public DecimalList cumFunc(BinaryOperator<BigDecimal> aggregator) {
+		return this.cumFunc(aggregator, false);
+	}
+
+	/**
+	 * Apply a row-wise cumulative computation of values using the given function.
+	 * For the first value, the function is called with null.
+	 * 
+	 * @param aggregator
+	 *            The function computing accumulated values.
+	 * @param skipFirst
+	 *            If <code>true</code>, <code>aggregator</code> is called starting
+	 *            at the second row (passing first and second value of this list).
+	 *            If false, the accumulation starts at the first row, but null is
+	 *            used along with this list's first element to compute the first
+	 *            result.
+	 * @return A new DecimalList object with the result of that accumulation.
+	 */
+	public DecimalList cumFunc(BinaryOperator<BigDecimal> aggregator, boolean skipFirst) {
+
+		if (0 == this.size())
+			return DecimalList.of(new BigDecimal[0]);
+
+		List<BigDecimal> d = new ArrayList<>(this.size());
+		BigDecimal prev;
+		int offset;
+
+		if (skipFirst) {
+			d.add(null);
+			prev = this.getAt(0);
+			offset = 1;
+		} else {
+			prev = null;
+			offset = 0;
+		}
+
+		for (int i = offset; i < this.size(); i++) {
+			d.add(prev = aggregator.apply(prev, this.value.get(i)));
+		}
+
+		return new DecimalList(d);
+	}
+
 	/*
 	 * count 3.0 mean 2.0 std 1.0 min 1.0 25% 1.5 50% 2.0 75% 2.5 max 3.0 dtype:
 	 * float64
@@ -1457,6 +1508,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * 
 	 * 
 	 */
+	@Override
 	public DecimalList shift(int n) {
 		BigDecimal[] list = new BigDecimal[this.size()];
 
@@ -1594,6 +1646,39 @@ public class DecimalList extends DataList<BigDecimal> {
 		return this.applyWhere(test, valueMapper);
 	}
 
+	/*
+	 * public CategoryList cut(int bins) {
+	 * 
+	 * }
+	 * 
+	 * // bins by the number of labels, and labels into category public CategoryList
+	 * cut(String... labels) {
+	 * 
+	 * }
+	 * 
+	 * public CategoryList cut(Function<BigDecimal, String> categoryMapper) {
+	 * 
+	 * }
+	 * 
+	 * public CategoryList cut(BigDecimal... bins) {
+	 * 
+	 * }
+	 * 
+	 * public CategoryList cut(List<Two<BigDecimal, String>> bins) {
+	 * 
+	 * }
+	 * 
+	 * public CategoryList cut(List<BigDecimal> bins, List<String> labels) {
+	 * 
+	 * }
+	 * 
+	 * // merging public <K> DataList<BigDecimal> join(DecimalList other,
+	 * Function<BigDecimal, K> joinKeyMapper, JoinType how, JoinConstraint
+	 * uniquenessConstraint) {
+	 * 
+	 * }
+	 */
+
 	public class LocationAccessor {
 
 	}
@@ -1613,13 +1698,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public static void main(String[] args) {
-		Namba nb = Namba.instance();
-
-		DecimalList lst = nb.data.decimals.range(1000000, -2000000000, 12200525).roundTo(-2);
-		System.out.println(lst);
-		System.out.println("mode: " + DEFAULT_FORMAT.format(lst.mode()));
-		System.out.println("median: " + DEFAULT_FORMAT.format(lst.median()));
-		System.out.println("mean: " + DEFAULT_FORMAT.format(lst.mean()));
-		System.out.println("ptp: " + DEFAULT_FORMAT.format(lst.ptp()));
+		System.out.println(Namba.instance().data.decimals.random(30)
+				.groupBy(n -> n.compareTo(BigDecimal.valueOf(0.5)) > 0 ? "large" : "small").groups());
 	}
 }

@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -65,6 +66,16 @@ public class Mask implements NambaList {
 			b[i] = array[i];
 
 		return new Mask(b);
+	}
+
+	public static Mask of(int size, IntPredicate predicate) {
+		boolean[] b = new boolean[size];
+
+		for (int i = 0; i < size; i++) {
+			b[i] = predicate.test(i);
+		}
+
+		return of(b);
 	}
 
 	@Override
@@ -139,6 +150,10 @@ public class Mask implements NambaList {
 		return this.value.length - this.count();
 	}
 
+	public IntList asInt() {
+		return IntList.of(IntStream.range(0, this.value.length).map(i -> this.value[i] ? 1 : 0).toArray());
+	}
+
 	public IntList truthy() {
 		return IntList.of(IntStream.range(0, this.value.length).filter(i -> this.value[i]).toArray());
 	}
@@ -161,6 +176,21 @@ public class Mask implements NambaList {
 
 	public boolean anyFalse() {
 		return IntStream.range(0, this.value.length).anyMatch(i -> !this.value[i]);
+	}
+
+	public int sum() {
+		return this.asInt().sum().orElse(0);
+	}
+
+	public double mean() {
+		if (0 == this.size()) {
+			return 0.0;
+		}
+		return ((double) this.sum()) / this.size();
+	}
+
+	public double meanPercent() {
+		return ((double) this.sum()) / this.size() * 100;
 	}
 
 	public Mask and(Mask other) {
@@ -282,5 +312,24 @@ public class Mask implements NambaList {
 		}
 
 		return Two.of(listGenerator.apply(trues), listGenerator.apply(falses));
+	}
+
+	@Override
+	public LongList asLong() {
+		long[] data = new long[this.size()];
+		for (int i = 0; i < this.size(); i++) {
+			data[i] = this.value[i] ? 1 : 0;
+		}
+		return LongList.of(data);
+	}
+
+	@Override
+	public DoubleList asDouble() {
+		return this.asLong().asDouble();
+	}
+
+	@Override
+	public Mask asMask() {
+		return this;
 	}
 }

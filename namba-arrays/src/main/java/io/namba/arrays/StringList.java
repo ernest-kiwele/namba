@@ -596,11 +596,15 @@ public class StringList extends DataList<String> {
 	}
 
 	public DataList<List<String>> split(String delimiter) {
+		return this.split(delimiter, -1);
+	}
+
+	public DataList<List<String>> split(String delimiter, int limit) {
 		List<List<String>> b = new ArrayList<>();
 
 		for (int i = 0; i < size(); i++) {
 			String val = this.getAt(i);
-			b.add(null == val ? Collections.emptyList() : Arrays.asList(val.split(delimiter)));
+			b.add(null == val ? Collections.emptyList() : Arrays.asList(val.split(delimiter, limit)));
 		}
 
 		return new DataList<>(DataType.OBJECT, b);
@@ -614,6 +618,32 @@ public class StringList extends DataList<String> {
 			String del = delimiter.getAt(i);
 
 			b.add(null == val ? Collections.emptyList() : Arrays.asList(val.split(del)));
+		}
+
+		return new DataList<>(DataType.OBJECT, b);
+	}
+
+	public DataList<List<String>> split(StringList delimiter, IntList limit) {
+		List<List<String>> b = new ArrayList<>();
+
+		for (int i = 0; i < size(); i++) {
+			String val = this.getAt(i);
+			String del = delimiter.getAt(i);
+
+			b.add(null == val ? Collections.emptyList() : Arrays.asList(val.split(del, limit.getAt(i))));
+		}
+
+		return new DataList<>(DataType.OBJECT, b);
+	}
+
+	public DataList<List<String>> split(StringList delimiter, int limit) {
+		List<List<String>> b = new ArrayList<>();
+
+		for (int i = 0; i < size(); i++) {
+			String val = this.getAt(i);
+			String del = delimiter.getAt(i);
+
+			b.add(null == val ? Collections.emptyList() : Arrays.asList(val.split(del, limit)));
 		}
 
 		return new DataList<>(DataType.OBJECT, b);

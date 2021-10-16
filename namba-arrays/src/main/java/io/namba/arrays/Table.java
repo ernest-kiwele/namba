@@ -30,6 +30,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import io.namba.Namba;
+import io.namba.arrays.data.tuple.Two;
 import io.namba.arrays.range.IntRange;
 
 /**
@@ -150,8 +151,10 @@ public class Table implements NambaList {
 	public StringList string() {
 		List<StringList> strings = Stream
 				.of(Stream.<NambaList>of(Namba.instance().data.ints.range(this.size)), this.columns.stream())
-				.flatMap(Function.identity()).map(NambaList::string).map(StringList::leftPadToMaxLength)
-				.collect(Collectors.toList());
+				.flatMap(Function.identity()).map(NambaList::string)
+				.map(l -> l.<StringList>name(StringUtils.center("strings", l.maxLength())))
+				.map(lst -> lst.insertAtHead(Arrays.asList(lst.getName(), StringUtils.repeat("-", lst.maxLength()))))
+				.map(StringList::leftPadToMaxLength).collect(Collectors.toList());
 
 		return StringList.of(IntStream.range(0, this.size())
 				.mapToObj(i -> strings.stream().map(s -> s.getAt(i)).collect(Collectors.joining(" | ", "| ", " |")))
@@ -162,8 +165,53 @@ public class Table implements NambaList {
 		return this.columns.get(this.names.get(name));
 	}
 
+	public Table sortBy(String... columns) {
+		// TODO: implement
+		return null;
+	}
+
+	public Table sortBy(IntList locOrder) {
+		Map<Integer, Integer> order = locOrder.indexedStream().collect(Collectors.toMap(Two::a, Two::b));
+
+		// TODO: implement
+		return null;
+	}
+
+	public Table selectDataTypes(DataType... dataTypes) {
+		// TODO: implement
+		return null;
+	}
+
+	public class Columns {
+
+	}
+
+	// selection idioms
+	public class Query {
+	}
+
 	public static void main(String[] args) {
 		Namba nb = Namba.instance();
 		System.out.println(Table.of(List.of(nb.data.doubles.geomSpace(12, 1000, 4)), null));
+	}
+
+	@Override
+	public IntList asInt() {
+		return null;
+	}
+
+	@Override
+	public LongList asLong() {
+		return null;
+	}
+
+	@Override
+	public DoubleList asDouble() {
+		return null;
+	}
+
+	@Override
+	public Mask asMask() {
+		return null;
 	}
 }

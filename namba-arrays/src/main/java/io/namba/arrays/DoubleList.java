@@ -189,4 +189,14 @@ public class DoubleList implements NambaList {
 		}
 		return DoubleList.of(data);
 	}
+
+	@Override
+	public DoubleList asDouble() {
+		return this;
+	}
+
+	@Override
+	public Mask asMask() {
+		return Mask.of(this.size(), e -> 0 != this.getAt(e));
+	}
 }
