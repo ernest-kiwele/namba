@@ -11,12 +11,12 @@
 
 	<!-- Example change to the file -->
 	<properties>
-		<commons.lang.version>3.11</commons.lang.version>
-		<lombok.version>1.18.16</lombok.version>
+		<commons.lang.version>3.12.0</commons.lang.version>
+		<lombok.version>1.18.2</lombok.version>
 
-		<junit.jupiter.version>5.7.0</junit.jupiter.version>
-		<junit.platform.version>1.7.0</junit.platform.version>
-		<mockito.version>3.5.15</mockito.version>
+		<junit.jupiter.version>5.8.1</junit.jupiter.version>
+		<junit.platform.version>1.8.1</junit.platform.version>
+		<mockito.version>4.0.0</mockito.version>
 	</properties>
 
 	<dependencies>
