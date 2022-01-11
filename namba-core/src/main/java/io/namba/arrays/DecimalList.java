@@ -224,18 +224,38 @@ public class DecimalList extends DataList<BigDecimal> {
 		return new DecimalList(bd, null);
 	}
 
+	/**
+	 * Returns a <code>DecimalList</code> with absolute values of each element in
+	 * this list.
+	 * 
+	 * @return A new decimal list with absolute values of this list's elements.
+	 */
 	public DecimalList abs() {
 		return this.apply(BigDecimal::abs);
 	}
 
+	/**
+	 * An alias of {@link #abs()}
+	 */
 	public DecimalList absolute() {
 		return this.abs();
 	}
 
+	/**
+	 * Creates a decimal list with this list's values negated.
+	 * 
+	 * @return A new list with this list's values negated.
+	 */
 	public DecimalList negative() {
 		return this.apply(BigDecimal::negate);
 	}
 
+	/**
+	 * Returns this list's values as is.
+	 * 
+	 * @return This list's values with their current signs.
+	 * @implNote The current implementation returns the current instance.
+	 */
 	public DecimalList positive() {
 		return this;
 	}
@@ -253,49 +273,140 @@ public class DecimalList extends DataList<BigDecimal> {
 	// return this.zip(n, (a, b) -> a % b);
 	// }
 
+	/**
+	 * Returns a decimal list with elements corresponding to the sign of elements.
+	 * 
+	 * @return A new list with <code>signum</code> values from this list's elements.
+	 * @implNote The "signum" values are as per <code>BigDecimal</code>'s
+	 *           <code>sinum</code> implementation.
+	 */
 	public DecimalList signum() {
 		return this.apply(i -> null == i ? null : BigDecimal.valueOf(i.signum()));
 	}
 
+	/**
+	 * An alias for {@link #signum()}
+	 */
 	public DecimalList sign() {
 		return this.signum();
 	}
 
+	/**
+	 * Finds the mode in this list's data set.
+	 */
 	public BigDecimal mode() {
 		return this.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet()
 				.stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey();
 	}
 
+	/**
+	 * Treat this list's elements as double (using
+	 * {@link BigDecimal#doubleValue()}), apply the given <code>op</code> operation
+	 * to compute new values used to create a new decimal list's elements.
+	 * 
+	 * <p>
+	 * All <code>null</code> values will be returned without being using
+	 * <code>op</code>.
+	 * </p>
+	 * 
+	 * @param op
+	 *            The mapping used to compute new values for each entry from the
+	 *            current list.
+	 * @return A new decimal list with decimal values created from the result of
+	 *         <code>op</code>'s mapping.
+	 * @implNote The operation does not perform any range check for doubles passed
+	 *           to the mapping operation, so overflows and underflows will be
+	 *           ignored.
+	 */
 	public DecimalList applyDoubleOperation(DoubleUnaryOperator op) {
 		return new DecimalList(
 				this.value.stream().map(v -> null == v ? null : BigDecimal.valueOf(op.applyAsDouble(v.doubleValue())))
 						.collect(Collectors.toList()));
 	}
 
+	/**
+	 * Returns the trigonometric sine of each element of this list as input angle.
+	 * 
+	 * @return A new decimal list with <code>sine</code> results corresponding to
+	 *         this list's elements.
+	 * @implNote This operation converts elements to <code>double</code> values
+	 *           using {@link BigDecimal#doubleValue()}, so overflows and underflows
+	 *           are ignored.
+	 * @see {@link java.lang.Math#sin}
+	 */
 	public DecimalList sin() {
 		return this.applyDoubleOperation(Math::sin);
 	}
 
+	/**
+	 * Returns the trigonometric cosine of each element of this list as input angle.
+	 * 
+	 * @return A new decimal list with <code>cosine</code> results corresponding to
+	 *         this list's elements.
+	 * @implNote This operation converts elements to <code>double</code> values
+	 *           using {@link BigDecimal#doubleValue()}, so overflows and underflows
+	 *           are ignored.
+	 * @see {@link java.lang.Math#cos}
+	 */
 	public DecimalList cos() {
 		return this.applyDoubleOperation(Math::cos);
 	}
 
+	/**
+	 * Returns the trigonometric tangent of each element of this list as input
+	 * angle.
+	 * 
+	 * @return A new decimal list with <code>tangent</code> results corresponding to
+	 *         this list's elements.
+	 * @implNote This operation converts elements to <code>double</code> values
+	 *           using {@link BigDecimal#doubleValue()}, so overflows and underflows
+	 *           are ignored.
+	 * @see {@link java.lang.Math#tan}
+	 */
 	public DecimalList tan() {
 		return this.applyDoubleOperation(Math::tan);
 	}
 
+	/**
+	 * An alias for {@link #asin()}
+	 */
 	public DecimalList arcsin() {
 		return this.asin();
 	}
 
+	/**
+	 * Returns the trigonometric arc sine of each element of this list as input
+	 * angle.
+	 * 
+	 * @return A new decimal list with arc sine results corresponding to this list's
+	 *         elements.
+	 * @implNote This operation converts elements to <code>double</code> values
+	 *           using {@link BigDecimal#doubleValue()}, so overflows and underflows
+	 *           are ignored.
+	 * @see {@link java.lang.Math#asin}
+	 */
 	public DecimalList asin() {
 		return this.applyDoubleOperation(Math::asin);
 	}
 
+	/**
+	 * An alias for {@link #acos()}.
+	 */
 	public DecimalList arccos() {
 		return this.acos();
 	}
 
+	/**
+	 * Returns the trigonometric arc cosine of each element of this list as input
+	 * angle.
+	 * 
+	 * @return A new decimal list with arc cosine results corresponding to this
+	 *         list's elements.
+	 * @implNote This operation converts elements to <code>double</code> values
+	 *           using {@link BigDecimal#doubleValue()}, so overflows and underflows
+	 *           are ignored.
+	 * @see {@link java.lang.Math#acos}
+	 */
 	public DecimalList acos() {
 		return this.applyDoubleOperation(Math::acos);
 	}
@@ -344,10 +455,19 @@ public class DecimalList extends DataList<BigDecimal> {
 		return this.apply(v -> v.multiply(v, this.mathContext));
 	}
 
+	/**
+	 * Computes the square root of each element and returns a new decimal list.
+	 * 
+	 * @return A new list with elements corresponding to square roots of this
+	 *         instance's elements.
+	 */
 	public DecimalList squareRoot() {
 		return this.apply(v -> v.sqrt(this.mathContext));
 	}
 
+	/**
+	 * An alias for {@link #squareRoot()}.
+	 */
 	public DecimalList sqrt() {
 		return this.squareRoot();
 	}
@@ -356,11 +476,20 @@ public class DecimalList extends DataList<BigDecimal> {
 	// TODO: log(e, x)
 	// TODO: pow(2, x)
 
-	// increment/decrement
+	/**
+	 * Increments each of this list's elements by 1.
+	 * 
+	 * @return A new list with the result of that addition.
+	 */
 	public DecimalList next() {
 		return this.apply(v -> v.add(BigDecimal.ONE));
 	}
 
+	/**
+	 * Decrements each of this list's elements by 1.
+	 * 
+	 * @return A new list with the result of that subtraction.
+	 */
 	public DecimalList previous() {
 		return this.apply(v -> v.subtract(BigDecimal.ONE));
 	}
@@ -368,19 +497,42 @@ public class DecimalList extends DataList<BigDecimal> {
 	// bitwise operators
 	// TODO: Bitwise operations
 
-	// Comparison
+	/**
+	 * {@link An alias for #equals(BigDecimal)}
+	 */
 	public Mask eq(BigDecimal other) {
 		return this.equals(other);
 	}
 
+	/**
+	 * Returns a mask with the result of equality test between each element and the
+	 * given decimal value.
+	 * 
+	 * @param other
+	 *            A value to test equality with against all elements.
+	 * @return A mask with results corresponding to all elements of this list.
+	 */
 	public Mask equals(BigDecimal other) {
 		return this.test(other::equals);
 	}
 
+	/**
+	 * An alias for {@link DecimalList#equals(DecimalList)}
+	 */
 	public Mask eq(DecimalList other) {
 		return this.equals(other);
 	}
 
+	/**
+	 * Returns a mask with the result of one-to-one equality tests between each
+	 * element and the given decimal list's values.
+	 * 
+	 * @param other
+	 *            A list supplying elements to test equality against.
+	 * @return A mask with results corresponding to all elements of both list.
+	 * @throws IllegalArgumentException
+	 *             If the sizes of the two lists do not match.
+	 */
 	public Mask equals(DecimalList other) {
 		this.verifySizeMatch(this, other);
 
@@ -393,6 +545,14 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is less than each corresponding element
+	 * of the given list.
+	 * 
+	 * @param other
+	 *            A list of elements to compare elements of this list to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask lt(DecimalList other) {
 		this.verifySizeMatch(this, other);
 
@@ -405,6 +565,14 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is less than the given element,
+	 * returning results corresponding to this list's elements.
+	 * 
+	 * @param other
+	 *            The element to compare this list's elements to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask lt(BigDecimal other) {
 		boolean[] a = new boolean[this.value.size()];
 
@@ -415,6 +583,14 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is less than or equal to each
+	 * corresponding element of the given list.
+	 * 
+	 * @param other
+	 *            A list of elements to compare elements of this list to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask le(DecimalList other) {
 		this.verifySizeMatch(this, other);
 
@@ -427,6 +603,14 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is less than or equal to the given
+	 * value.
+	 * 
+	 * @param other
+	 *            A value to compare elements of this list to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask le(BigDecimal other) {
 		boolean[] a = new boolean[this.value.size()];
 
@@ -437,6 +621,14 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is greater than each corresponding
+	 * element of the given list.
+	 * 
+	 * @param other
+	 *            A list of elements to compare elements of this list to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask gt(DecimalList other) {
 		this.verifySizeMatch(this, other);
 
@@ -449,6 +641,13 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is greater the given value.
+	 * 
+	 * @param other
+	 *            A value to compare elements of this list to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask gt(BigDecimal other) {
 		boolean[] a = new boolean[this.value.size()];
 
@@ -459,6 +658,14 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is greater than or equal to each
+	 * corresponding element of the given list.
+	 * 
+	 * @param other
+	 *            A list of elements to compare elements of this list to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask ge(DecimalList other) {
 		this.verifySizeMatch(this, other);
 
@@ -471,6 +678,13 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * Tests that each element of this list is greater or equal to the given value.
+	 * 
+	 * @param other
+	 *            A value to compare elements of this list to.
+	 * @return A mask with results of that comparison.
+	 */
 	public Mask ge(BigDecimal other) {
 		boolean[] a = new boolean[this.value.size()];
 
