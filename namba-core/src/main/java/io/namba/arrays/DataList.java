@@ -87,7 +87,7 @@ public class DataList<T> implements Iterable<T>, NambaList {
 		return this.index;
 	}
 
-	public static <T> DataList<T> of(DataType dataType, T... values) {
+	public static <T> DataList<T> of(DataType dataType, @SuppressWarnings("unchecked") T... values) {
 		return new DataList<>(dataType, values);
 	}
 

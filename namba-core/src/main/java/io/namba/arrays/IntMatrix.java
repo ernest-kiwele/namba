@@ -100,10 +100,10 @@ public class IntMatrix extends IntList {
 	}
 
 	public static void main(String[] args) {
-		int size = 20;
-		int w = 4;
+		int size = 80;
+		int w = 8;
 
-		IntMatrix matrix = new IntMatrix(IntData.instance().rangeArray(10, 10 + size), w);
+		IntMatrix matrix = new IntMatrix(IntData.instance().rangeArray(960, 960 + size), w);
 
 		System.out.println(matrix);
 

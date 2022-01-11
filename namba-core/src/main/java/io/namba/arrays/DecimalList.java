@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
@@ -1698,7 +1699,8 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public static void main(String[] args) {
-		System.out.println(Namba.instance().data.decimals.random(30)
-				.groupBy(n -> n.compareTo(BigDecimal.valueOf(0.5)) > 0 ? "large" : "small").groups());
+		Random random = new Random();
+		var dl = Namba.instance().data.decimals.generate(10, () -> new BigDecimal(random.nextInt(100)));
+		System.out.println(dl.groupBy(n -> n.compareTo(BigDecimal.valueOf(0.5)) > 0).min());
 	}
 }

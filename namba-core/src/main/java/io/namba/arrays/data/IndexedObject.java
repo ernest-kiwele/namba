@@ -61,7 +61,7 @@ public class IndexedObject<T extends Comparable<T>> implements Comparable<Indexe
 
 	@Override
 	public int hashCode() {
-		return this.value == null ? 0 : this.value.hashCode();
+		return this.value == null ? super.hashCode() : this.value.hashCode();
 	}
 
 	@Override
