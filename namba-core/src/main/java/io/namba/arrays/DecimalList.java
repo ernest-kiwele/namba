@@ -854,6 +854,12 @@ public class DecimalList extends DataList<BigDecimal> {
 				.min(Entry.comparingByValue()).map(Pair::getLeft).orElse(-1);
 	}
 
+	/**
+	 * Compute the difference between the max and the min values in this list.
+	 * 
+	 * @return The difference between the max and the min values. If the collection
+	 *         is empty, null is returned.
+	 */
 	public BigDecimal ptp() {
 
 		BigDecimal max = null;
@@ -878,15 +884,32 @@ public class DecimalList extends DataList<BigDecimal> {
 		return max == null || min == null ? null : max.subtract(min, this.mathContext);
 	}
 
+	/**
+	 * An alias of {@link #ptp()}
+	 */
 	public BigDecimal peakToPeak() {
 		return this.ptp();
 	}
 
+	/**
+	 * Create a new decimal list with values from this list filtered to fit the
+	 * given range, both <code>low</code> and <code>high</code> inclusive.
+	 * 
+	 * @param low
+	 *            The minimum value to clip to.
+	 * @param high
+	 *            The maximum value to clip to.
+	 * @return A new decimal list containing values from this list that fit in the
+	 *         given range.
+	 */
 	public DecimalList clip(BigDecimal low, BigDecimal high) {
 		return new DecimalList(this.value.stream().filter(i -> low.compareTo(i) <= 0 && high.compareTo(i) >= 0)
 				.collect(Collectors.toList()));
 	}
 
+	/**
+	 * Computes the population variance of values in this decimal list.
+	 */
 	public BigDecimal populationVar() {
 		BigDecimal mean = this.mean();
 		return this.value.stream().map(i -> i.subtract(mean, this.mathContext).pow(2))
@@ -894,6 +917,9 @@ public class DecimalList extends DataList<BigDecimal> {
 				.divide(BigDecimal.valueOf(this.value.size()));
 	}
 
+	/**
+	 * Compute the sample variance of values in this decimal list.
+	 */
 	public BigDecimal sampleVar() {
 		BigDecimal mean = this.mean();
 		return this.value.stream().map(i -> i.subtract(mean).pow(2))
@@ -901,11 +927,21 @@ public class DecimalList extends DataList<BigDecimal> {
 				.divide(BigDecimal.valueOf(this.value.size() - 1l), this.mathContext);
 	}
 
-	// population std
+	/**
+	 * Compute the population standard deviation from observations in this decimal
+	 * list.
+	 * 
+	 * @see {@link #populationVar()}
+	 */
 	public BigDecimal std() {
 		return this.populationVar().sqrt(this.mathContext);
 	}
 
+	/**
+	 * Compute the sample standard deviation from observations in this decimal list.
+	 * 
+	 * @see {@link #sampleVar()}
+	 */
 	public BigDecimal sampleStd() {
 		return this.sampleVar().sqrt(this.mathContext);
 	}
@@ -942,15 +978,20 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	/**
-	 * Returns indices of non-zero elements
-	 * 
-	 * @return
+	 * Returns indices of non-zero elements. Nulls are not excluded from the
+	 * returned list.
 	 */
 	public DecimalList nonZero() {
 		return new DecimalList(
 				this.value.stream().filter(i -> null == i || !i.equals(BigDecimal.ZERO)).collect(Collectors.toList()));
 	}
 
+	/**
+	 * Returns true if none of the elements is equal to 0.
+	 * 
+	 * @implNote The comparison is performed using BigDecimal.ZERO.equals(x) for x
+	 *           in this list. Nulls are not considered "zero"
+	 */
 	public boolean noneZero() {
 		for (BigDecimal i : this.value) {
 			if (BigDecimal.ZERO.equals(i)) {
@@ -961,6 +1002,12 @@ public class DecimalList extends DataList<BigDecimal> {
 		return true;
 	}
 
+	/**
+	 * Returns true if any of the elements is not equal to 0.
+	 * 
+	 * @implNote The comparison is performed using BigDecimal.ZERO.equals(x) for x
+	 *           in this list. Nulls are not considered "zero"
+	 */
 	public boolean anyNonZero() {
 		for (BigDecimal i : this.value) {
 			if (!BigDecimal.ZERO.equals(i)) {
@@ -973,17 +1020,23 @@ public class DecimalList extends DataList<BigDecimal> {
 
 	/**
 	 * Counts non-null elements
-	 * 
-	 * @return
 	 */
 	public int count() {
 		return (int) this.stream().filter(Objects::nonNull).count();
 	}
 
+	/**
+	 * Compute a decimal list containing unique values from this list.
+	 * 
+	 * @return A new decimal list with distinct values from this list.
+	 */
 	public DecimalList distinct() {
 		return new DecimalList(this.stream().distinct().collect(Collectors.toList()));
 	}
 
+	/**
+	 * An alias for {@link #distinct()}
+	 */
 	public DecimalList unique() {
 		return this.distinct();
 	}
@@ -992,6 +1045,16 @@ public class DecimalList extends DataList<BigDecimal> {
 		return this.dropDuplicates(false);
 	}
 
+	/**
+	 * Remove duplicates from this decimal list, keeping only the first or the last
+	 * value, depending on whether <code>keepLast</code> is set to
+	 * <code>false</code> or <code>true</code>, respectively.
+	 * 
+	 * @param keepLast
+	 *            If <code>true</code>, only the last instance of the duplicate is
+	 *            retained.
+	 * @return A new decimal list with unique values.
+	 */
 	public DecimalList dropDuplicates(boolean keepLast) {
 		List<BigDecimal> data = (keepLast ? this.reverseStream() : this.stream()).distinct()
 				.collect(Collectors.toList());
@@ -1008,38 +1071,85 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	// TODO: look into storing a "sorted" flag with corresponding order.
+	/**
+	 * Return the given number of this list's largest values. This is equivalent to
+	 * slicing a reverse-sorted version of this list using the given number.
+	 * 
+	 * @param n
+	 *            The number of elements to return.
+	 * @return A new list with the <code>n</code> largest values.
+	 */
 	public DecimalList nLargest(int n) {
 		List<BigDecimal> copy = new ArrayList<>(this.value);
 		copy.sort(Comparator.reverseOrder());
 		return DecimalList.of(copy.subList(0, n), null);
 	}
 
+	/**
+	 * Return the given number of this list's smallest values. This is equivalent to
+	 * slicing a sorted version of this list using the given number.
+	 * 
+	 * @param n
+	 *            The number of elements to return.
+	 * @return A new list with the <code>n</code> smallest values.
+	 */
 	public DecimalList nSmallest(int n) {
 		List<BigDecimal> copy = new ArrayList<>(this.value);
 		copy.sort(Comparator.naturalOrder());
 		return DecimalList.of(copy.subList(0, n), null);
 	}
 
+	/**
+	 * Returns the number of unique elements in this list.
+	 */
 	public int nUnique() {
 		return (int) this.value.stream().distinct().count();
 	}
 
+	/**
+	 * Creates an array containing this list's elements.
+	 */
 	public BigDecimal[] toArray() {
 		return this.value.toArray(i -> new BigDecimal[i]);
 	}
 
+	/**
+	 * Perform a reduction using the given binary operation.
+	 * 
+	 * @param reducer
+	 *            The binary operation to perform the aggregation with. This may not
+	 *            be null.
+	 * @return The aggregated value, or null if the collection is empty.
+	 */
 	public BigDecimal agg(BinaryOperator<BigDecimal> reducer) {
-		return this.value.stream().reduce(reducer).orElse(null);
+		return this.value.stream().reduce(Objects.requireNonNull(reducer, "reducer may not be null")).orElse(null);
 	}
 
+	/**
+	 * An alias for {@link #agg(BinaryOperator)}
+	 */
 	public BigDecimal aggregate(BinaryOperator<BigDecimal> reducer) {
 		return this.agg(reducer);
 	}
 
+	/**
+	 * Perform a reduction using the given binary operation. If the collection is
+	 * empty, the given <code>identity</code> value is returned.
+	 * 
+	 * @param reducer
+	 *            The binary operation to perform the aggregation with. This may not
+	 *            be null.
+	 * @param identity
+	 *            A default value to use for the reduction.
+	 * @return The aggregated value, or null if the collection is empty.
+	 */
 	public BigDecimal agg(BigDecimal identity, BinaryOperator<BigDecimal> reducer) {
 		return this.value.stream().reduce(identity, reducer);
 	}
 
+	/**
+	 * An alias for {@link #agg(BigDecimal, BinaryOperator)}
+	 */
 	public BigDecimal aggregate(BigDecimal identity, BinaryOperator<BigDecimal> reducer) {
 		return this.agg(identity, reducer);
 	}
@@ -1061,6 +1171,13 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	// Concatenate two or more Series.
+	/**
+	 * Concatenate this list and <code>other</code>
+	 * 
+	 * @param other
+	 *            List to append to this
+	 * @return A new decimal list with this and <code>other</code> joined.
+	 */
 	public DecimalList concat(DecimalList other) {
 		List<BigDecimal> all = new ArrayList<>(this.value);
 		all.addAll(other.value);
@@ -1068,45 +1185,51 @@ public class DecimalList extends DataList<BigDecimal> {
 		return DecimalList.of(all, null);
 	}
 
+	/**
+	 * An alias for {@link #concat(DataList)}
+	 */
 	public DecimalList append(DecimalList other) {
 		return this.concat(other);
 	}
 
-	/*
-	 * Return the integer indices that would sort the Series values.
-	 * 
-	 * Override ndarray.argsort. Argsorts the value, omitting NA/null values, and
-	 * places the result in the same locations as the non-NA values.
+	/**
+	 * Return the integer indices that would sort the list's values.
 	 */
 	public IntList argSort() {
 		return IntList.of(IntStream.range(0, this.size()).mapToObj(i -> IndexedObject.of(i, this.value.get(i)))
 				.sorted(Comparator.comparing(IndexedObject::value)).mapToInt(IndexedObject::index).toArray());
 	}
 
+	/**
+	 * Return the integer indices that would reverse-sort the list's values.
+	 */
 	public IntList argSortReversed() {
 		return IntList.of(IntStream.range(0, this.size()).mapToObj(i -> IndexedObject.of(i, this.value.get(i)))
 				.sorted(Comparator.comparing(IndexedObject<BigDecimal>::value).reversed())
 				.mapToInt(IndexedObject::index).toArray());
 	}
 
-	/*
+	/**
 	 * Compute the lag-N autocorrelation.
 	 * 
-	 * This method computes the Pearson correlation between the Series and its
-	 * shifted self.
+	 * This method computes the Pearson correlation between the list and its shifted
+	 * self.
 	 */
 	public BigDecimal autoCorrelation(int shifts) {
 		return this.correlation(this.shift(shifts));
 	}
 
+	/**
+	 * An alias for {@link #autoCorrelation(int)}
+	 */
 	public BigDecimal autoCorr(int shifts) {
 		return this.autoCorrelation(shifts);
 	}
 
-	/*
-	 * Synonym for DataFrame.fillna() with method='bfill'.
+	/**
+	 * Fills nulls with the next valid value found in the list.
 	 */
-	public DecimalList backFill() {
+	public DecimalList forwardFill() {
 
 		BigDecimal[] v = new BigDecimal[this.size()];
 
@@ -1126,7 +1249,10 @@ public class DecimalList extends DataList<BigDecimal> {
 		return of(v);
 	}
 
-	public DecimalList forwardFill() {
+	/**
+	 * Fills nulls with the previous valid value found in the list.
+	 */
+	public DecimalList backFill() {
 
 		BigDecimal[] v = new BigDecimal[this.size()];
 
@@ -1146,10 +1272,12 @@ public class DecimalList extends DataList<BigDecimal> {
 		return of(v);
 	}
 
-	/*
-	 * Fill NA/NaN values using the specified method.
+	/**
+	 * Fills nulls with the given value.
 	 * 
-	 * method : {‘backfill’, ‘bfill’, ‘pad’, ‘ffill’, None}, default None
+	 * @param bd
+	 *            The value to replace nulls with.
+	 * @return A new decimal list with nulls replaced.
 	 */
 	public DecimalList fillNa(BigDecimal bd) {
 
@@ -1173,12 +1301,8 @@ public class DecimalList extends DataList<BigDecimal> {
 	//
 	// }
 
-	/*
-	 * Return boolean Series equivalent to left <= series <= right.
-	 * 
-	 * This function returns a boolean vector containing True wherever the
-	 * corresponding Series element is between the boundary values left and right.
-	 * NA values are treated as False.
+	/**
+	 * Returns a mask equivalent to a test for low <= x <= high for x in this list.
 	 */
 	public Mask between(BigDecimal low, BigDecimal high) {
 		boolean[] b = new boolean[this.size()];
@@ -1191,12 +1315,15 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(b);
 	}
 
-	/*
-	 * Trim values at input threshold(s).
+	/**
+	 * Trim values at input thresholds. Assigns values outside boundary to boundary
+	 * values.
 	 * 
-	 * Assigns values outside boundary to boundary values. Thresholds can be
-	 * singular values or array like, and in the latter case the clipping is
-	 * performed element-wise in the specified axis.
+	 * The difference btween this method and {@link #clip(BigDecimal, BigDecimal)}
+	 * is that this replaces values out of bounds with the closest boundary element,
+	 * rather than excluding them.
+	 * 
+	 * @see {@link #clip(BigDecimal, BigDecimal)} for a similar method.
 	 */
 	public DecimalList clipToBoundaries(BigDecimal low, BigDecimal high) {
 		BigDecimal[] b = new BigDecimal[this.size()];
@@ -1209,21 +1336,28 @@ public class DecimalList extends DataList<BigDecimal> {
 		return of(b);
 	}
 
-	/*
-	 * Combine the Series with a Series or scalar according to func.
+	/**
+	 * Apply the given <code>combiner</code> operation element-wise to this list and
+	 * the given <code>other</code>.
 	 * 
-	 * Combine the Series and other using func to perform elementwise selection for
-	 * combined Series. fill_value is assumed when value is missing at some index
-	 * from one of the two objects being combined.
+	 * @param other
+	 *            The other decimal list to combine. This is expected to be of the
+	 *            same length as this. May not be null.
+	 * @param combiner
+	 *            An operation to produce a new value from elements from this and
+	 *            the given decimal list. May not be null.
+	 * @see {@link #zip(DataList, BinaryOperator)}
 	 */
 	public DecimalList combine(DecimalList other, BinaryOperator<BigDecimal> combiner) {
-		return this.zip(other, combiner);
+		return this.zip(Objects.requireNonNull(other), Objects.requireNonNull(combiner));
 	}
 
-	/*
-	 * Combine Series values, choosing the calling Series’s values first.
+	/**
+	 * Combine list values, choosing this list’s values first, only replacing them
+	 * with the given series if null.
 	 * 
-	 * (kinda like nvl)
+	 * @param other
+	 *            The other list supplying alternative values.
 	 */
 	public DecimalList combineFirst(DecimalList other) {
 		return this.zip(other, NambaMath::firstNonNull);
@@ -1239,6 +1373,12 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Table.of(Arrays.asList(this.getAt(nonEqual), other.getAt(nonEqual)), null);
 	}
 
+	/**
+	 * Compute the correlation between this and the <code>other</code> correlation.
+	 * 
+	 * @param other
+	 *            The other list.
+	 */
 	public BigDecimal correlation(DecimalList other) {
 
 		DecimalList thisMeanDiff = this.minus(this.mean());
@@ -1250,6 +1390,9 @@ public class DecimalList extends DataList<BigDecimal> {
 		return a.divide(b, DEFAULT_MATH_CONTEXT);
 	}
 
+	/**
+	 * An alias for {@link #correlation(DecimalList)}
+	 */
 	public BigDecimal corr(DecimalList other) {
 		return this.correlation(other);
 	}
@@ -1262,6 +1405,11 @@ public class DecimalList extends DataList<BigDecimal> {
 	// return this.covariance(other);
 	// }
 
+	/**
+	 * Compute cumulative sum of values in this list.
+	 * 
+	 * @return A new decimal list with cumulative sums.
+	 */
 	public DecimalList cumSum() {
 		if (this.value.isEmpty()) {
 			return new DecimalList(Collections.emptyList());
@@ -1283,6 +1431,11 @@ public class DecimalList extends DataList<BigDecimal> {
 		return DecimalList.of(r);
 	}
 
+	/**
+	 * Compute cumulative product of values in this list.
+	 * 
+	 * @return A new decimal list with cumulative products.
+	 */
 	public DecimalList cumProd() {
 		if (this.value.isEmpty()) {
 			return new DecimalList(Collections.emptyList());
@@ -1304,6 +1457,11 @@ public class DecimalList extends DataList<BigDecimal> {
 		return DecimalList.of(r);
 	}
 
+	/**
+	 * Compute cumulative max of values in this list.
+	 * 
+	 * @return A new decimal list with cumulative maxima.
+	 */
 	public DecimalList cumMax() {
 		BigDecimal[] v = new BigDecimal[this.size()];
 
@@ -1316,6 +1474,11 @@ public class DecimalList extends DataList<BigDecimal> {
 		return of(v);
 	}
 
+	/**
+	 * Compute cumulative min of values in this list.
+	 * 
+	 * @return A new decimal list with cumulative minima.
+	 */
 	public DecimalList cumMin() {
 		BigDecimal[] v = new BigDecimal[this.size()];
 
@@ -1399,11 +1562,8 @@ public class DecimalList extends DataList<BigDecimal> {
 		return null;
 	}
 
-	/*
-	 * Return a new Series with missing values removed.
-	 * 
-	 * See the User Guide for more on which values are considered missing, and how
-	 * to work with missing data.
+	/**
+	 * Return a new decimal list with missing values removed.
 	 */
 	public DecimalList dropNa() {
 		return this.getAt(this.isNa().negate());
@@ -1414,22 +1574,41 @@ public class DecimalList extends DataList<BigDecimal> {
 	//
 	// }
 
+	/**
+	 * Return the first few values of this list. The default value is specified by
+	 * {@link NambaList#SUMMARY_SIZE}
+	 */
 	public DecimalList head() {
 		return getAt(IntRange.of(SUMMARY_SIZE));
 	}
 
+	/**
+	 * Return the first <code>n</code> values of this list.
+	 */
 	public DecimalList head(int n) {
 		return getAt(IntRange.of(n));
 	}
 
+	/**
+	 * Return the last few values of this list. The default value is specified by
+	 * {@link NambaList#SUMMARY_SIZE}
+	 */
 	public DecimalList tail() {
 		return getAt(IntRange.of(this.size() - SUMMARY_SIZE, this.size()));
 	}
 
+	/**
+	 * Return the last <code>n</code> values of this list.
+	 */
 	public DecimalList tail(int n) {
 		return getAt(IntRange.of(this.size() - n, this.size()));
 	}
 
+	/**
+	 * Returns a histogram of values in this decimal list.
+	 * 
+	 * @return A <code>Table</code> with values and their counts.
+	 */
 	public Table hist() {
 		Map<BigDecimal, Integer> groups = this.histogram();
 
@@ -1447,6 +1626,15 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Table.of(null, DecimalList.of(keys), IntList.of(counts));
 	}
 
+	/**
+	 * Returns a histogram of values in this decimal list, with values being the
+	 * ratio of their respective counts, rather than the counts themselves. This
+	 * ratio can optionally be returned as a percent value.
+	 * 
+	 * @param percentage
+	 *            If true, values are returned as a percent rather than a raw ratio.
+	 * @return A <code>Table</code> with values and their count ratios.
+	 */
 	public Table normalizedHist(boolean percentage) {
 		List<Two<BigDecimal, Double>> lst = this.normalizedValueCounts(percentage);
 
@@ -1478,10 +1666,21 @@ public class DecimalList extends DataList<BigDecimal> {
 	//
 	// }
 
+	/**
+	 * Returns true if all values in this decimal list are distinct.
+	 * 
+	 * @return True if the decimal list contains only unique values, false
+	 *         otherwise.
+	 */
 	public boolean isUnique() {
 		return this.distinct().count() == this.size();
 	}
 
+	/**
+	 * Returns a mask indicating whether the value is null for each position.
+	 * 
+	 * @return A new mask with booleans indicating nulls.
+	 */
 	public Mask isNa() {
 		boolean[] v = new boolean[this.size()];
 
@@ -1492,8 +1691,10 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(v);
 	}
 
-	/*
-	 * Return the first element of the underlying data as a python scalar.
+	/**
+	 * Return the first element of the underlying data.
+	 * 
+	 * @return Null if the list is empty, the first element otherwise.
 	 */
 	public BigDecimal item() {
 		return this.value.isEmpty() ? null : this.value.get(0);
@@ -1514,10 +1715,27 @@ public class DecimalList extends DataList<BigDecimal> {
 	//
 	// }
 
+	/**
+	 * Returns a {@link java.util.stream.Stream stream} of objects holding each
+	 * element of this list and its corresponding index.
+	 * 
+	 * @return A stream that supplies indexed elements from this decimal list.
+	 * @see {@link #indexItemStreamReversed()}
+	 */
 	public Stream<IndexedObject<BigDecimal>> indexItemStream() {
 		return IntStream.range(0, this.size()).mapToObj(i -> IndexedObject.of(i, this.value.get(i)));
 	}
 
+	/**
+	 * Returns a {@link java.util.stream.Stream stream} of objects holding each
+	 * element of this list and its corresponding index. Unlike
+	 * {@link #indexItemStream()}, this method's stream will supply elements in
+	 * their reverse order.
+	 * 
+	 * @return A stream that supplies indexed elements from this decimal list, in
+	 *         reverse order.
+	 * @see {@link #indexItemStream()}
+	 */
 	public Stream<IndexedObject<BigDecimal>> indexItemStreamReversed() {
 		int total = this.size();
 		return IntStream.range(0, this.size()).map(i -> total - i - 1)
@@ -1538,8 +1756,11 @@ public class DecimalList extends DataList<BigDecimal> {
 	//
 	// }
 
-	/*
-	 * Return index for last non-NA/null value.
+	/**
+	 * Returns index for last non-NA/null value.
+	 * 
+	 * @return The last index of a non-null value. If the list is empty or contains
+	 *         no null value, -1 is returned.
 	 */
 	public int lastValidIndex() {
 		return this.indexItemStreamReversed().filter(v -> null != v.value()).findFirst().map(IndexedObject::getIndex)
@@ -1558,11 +1779,13 @@ public class DecimalList extends DataList<BigDecimal> {
 	// }
 
 	/**
-	 * replaces with the given value where the predicate evaluates to true
+	 * Replaces with the given value where the predicate evaluates to true.
 	 * 
 	 * @param cond
+	 *            The condition to test with.
 	 * @param val
-	 * @return
+	 *            The value to replace matching elements.
+	 * @return A new list with matching elements replaced.
 	 */
 	public DecimalList replaceWhere(Predicate<BigDecimal> cond, BigDecimal val) {
 		Objects.requireNonNull(cond);
@@ -1582,6 +1805,15 @@ public class DecimalList extends DataList<BigDecimal> {
 		return DecimalList.of(v);
 	}
 
+	/**
+	 * Replaces with the given value where the mask is set to true.
+	 * 
+	 * @param cond
+	 *            The mask with indexes to replace set to true.
+	 * @param val
+	 *            The value to replace matching elements.
+	 * @return A new list with matching elements replaced.
+	 */
 	public DecimalList replaceWhere(Mask cond, BigDecimal val) {
 		Objects.requireNonNull(cond);
 		Objects.requireNonNull(val);
@@ -1600,10 +1832,8 @@ public class DecimalList extends DataList<BigDecimal> {
 		return DecimalList.of(v);
 	}
 
-	/*
-	 * Return the median of the values for the requested axis.
-	 * 
-	 * Note: this skips na values
+	/**
+	 * Return the median of the values. Note that this skips null values.
 	 */
 	public BigDecimal median() {
 
@@ -1674,6 +1904,16 @@ public class DecimalList extends DataList<BigDecimal> {
 	//
 	// }
 
+	/**
+	 * Round values to the given number of decimals. The number can be negative,
+	 * which simply reduces the precision of values.
+	 * 
+	 * @param decimals
+	 *            Number of decimals to round to.
+	 * @return A new decimal list with values rounded to the given number of
+	 *         decimals.
+	 * @see {@link #roundTo(IntList)}
+	 */
 	public DecimalList roundTo(int decimals) {
 		BigDecimal[] v = new BigDecimal[this.size()];
 
@@ -1685,6 +1925,16 @@ public class DecimalList extends DataList<BigDecimal> {
 		return DecimalList.of(v);
 	}
 
+	/**
+	 * Round values to the number of decimals given in the given int list. The
+	 * number can be negative, which simply reduces the precision of values.
+	 * 
+	 * @param decimals
+	 *            An int index with numbers of decimals to round to.
+	 * @return A new decimal list with values rounded to the given numbers of
+	 *         decimals.
+	 * @see {@link #roundTo(int)}
+	 */
 	public DecimalList roundTo(IntList decimals) {
 		BigDecimal[] v = new BigDecimal[this.size()];
 
@@ -1696,10 +1946,27 @@ public class DecimalList extends DataList<BigDecimal> {
 		return DecimalList.of(v);
 	}
 
+	/**
+	 * Extract a sample of values from this decimal list.
+	 * 
+	 * @param fraction
+	 *            The fraction of the size of this list to sample. Must be a valid
+	 *            ratio: 0.0 < sample < 1.0
+	 * @return A new list with a sample from this list.
+	 */
 	public DecimalList sample(double fraction) {
+		if (!(0 < fraction && fraction < 1))
+			throw new IllegalArgumentException("fraction must be greater than 0 and smaller than 1");
 		return this.sample((int) (this.size() * fraction));
 	}
 
+	/**
+	 * Extract a sample of values from this decimal list.
+	 * 
+	 * @param size
+	 *            The size of the sample.
+	 * @return A new decimal list with sample values drawn from this list.
+	 */
 	public DecimalList sample(int size) {
 		return this.getAt(IntData.instance().randomArray(size, 0, this.size()));
 	}

@@ -21,6 +21,10 @@ package io.namba.arrays;
  */
 public interface NambaList {
 
+	/**
+	 * Default size of summary lists returned by <code>head()</code> and
+	 * <code>tail()</code>
+	 */
 	public static int SUMMARY_SIZE = 5;
 
 	default String getName() {
