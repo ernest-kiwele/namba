@@ -314,6 +314,34 @@ public class Mask implements NambaList {
 		return Two.of(listGenerator.apply(trues), listGenerator.apply(falses));
 	}
 
+	public <C extends NambaList> Two<C, C> partition(IntList data, Function<List<Integer>, C> listGenerator) {
+		List<Integer> trues = new ArrayList<>();
+		List<Integer> falses = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			if (this.value[i])
+				trues.add(data.getAt(i));
+			else
+				falses.add(data.getAt(i));
+		}
+
+		return Two.of(listGenerator.apply(trues), listGenerator.apply(falses));
+	}
+
+	public <C extends NambaList> Two<C, C> partition(LongList data, Function<List<Long>, C> listGenerator) {
+		List<Long> trues = new ArrayList<>();
+		List<Long> falses = new ArrayList<>();
+
+		for (int i = 0; i < this.size(); i++) {
+			if (this.value[i])
+				trues.add(data.getAt(i));
+			else
+				falses.add(data.getAt(i));
+		}
+
+		return Two.of(listGenerator.apply(trues), listGenerator.apply(falses));
+	}
+
 	@Override
 	public LongList asLong() {
 		long[] data = new long[this.size()];

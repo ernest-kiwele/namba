@@ -17,6 +17,7 @@ package io.namba.arrays;
 
 import io.namba.arrays.data.IntData;
 import io.namba.arrays.data.IntPair;
+import io.namba.arrays.data.tuple.TwoInts;
 import io.namba.arrays.range.Slice;
 
 /**
@@ -38,8 +39,8 @@ public class IntMatrix extends IntList {
 		this.height = val.length / width;
 	}
 
-	public int getAt(int x, int y) {
-		return super.getAt(this.width * x + y);
+	public int getAt(TwoInts coordinates) {
+		return super.getAt(this.width * coordinates.a() + coordinates.b());
 	}
 
 	public IntList getAt(Slice rowSlice) {

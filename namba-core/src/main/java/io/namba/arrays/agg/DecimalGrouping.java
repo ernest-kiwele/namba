@@ -30,7 +30,7 @@ import io.namba.arrays.DataList;
 import io.namba.arrays.DecimalList;
 import io.namba.arrays.Table;
 import io.namba.arrays.data.tuple.Two;
-import io.namba.functions.NambaMath;
+import io.namba.functions.DecimalMath;
 
 /**
  * 
@@ -64,12 +64,12 @@ public class DecimalGrouping<K> extends ObjectGrouping<K, BigDecimal> {
 	// }
 
 	public BigDecimal sampleStd(K key) {
-		return NambaMath.sampleStd(this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).values(),
+		return DecimalMath.sampleStd(this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).values(),
 				DecimalList.DEFAULT_MATH_CONTEXT);
 	}
 
 	public BigDecimal populationStd(K key) {
-		return NambaMath.populationStd(
+		return DecimalMath.populationStd(
 				this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).values(),
 				DecimalList.DEFAULT_MATH_CONTEXT);
 	}
@@ -117,7 +117,7 @@ public class DecimalGrouping<K> extends ObjectGrouping<K, BigDecimal> {
 	}
 
 	public BigDecimal populationVar(K key) {
-		return NambaMath.populationVar(
+		return DecimalMath.populationVar(
 				this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).values(),
 				DecimalList.DEFAULT_MATH_CONTEXT);
 	}
@@ -128,7 +128,7 @@ public class DecimalGrouping<K> extends ObjectGrouping<K, BigDecimal> {
 	}
 
 	public BigDecimal sampleVar(K key) {
-		return NambaMath.sampleVar(this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).values(),
+		return DecimalMath.sampleVar(this.handle.getAt(this.groups.getOrDefault(key, Collections.emptyList())).values(),
 				DecimalList.DEFAULT_MATH_CONTEXT);
 	}
 
@@ -146,7 +146,7 @@ public class DecimalGrouping<K> extends ObjectGrouping<K, BigDecimal> {
 	}
 
 	public BigDecimal mean(K key) {
-		return NambaMath.mean(this.groups.getOrDefault(key, Collections.emptyList()).stream().map(this.handle::getAt)
+		return DecimalMath.mean(this.groups.getOrDefault(key, Collections.emptyList()).stream().map(this.handle::getAt)
 				.collect(Collectors.toList()));
 	}
 
@@ -171,7 +171,7 @@ public class DecimalGrouping<K> extends ObjectGrouping<K, BigDecimal> {
 	}
 
 	public BigDecimal median(K key) {
-		return NambaMath.median(this.groups.getOrDefault(key, Collections.emptyList()).stream().map(this.handle::getAt)
+		return DecimalMath.median(this.groups.getOrDefault(key, Collections.emptyList()).stream().map(this.handle::getAt)
 				.collect(Collectors.toList()));
 	}
 

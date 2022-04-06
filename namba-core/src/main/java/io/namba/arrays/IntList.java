@@ -15,26 +15,37 @@
 
 package io.namba.arrays;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.IntSummaryStatistics;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.IntFunction;
+import java.util.function.IntPredicate;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import io.namba.Namba;
+import io.namba.arrays.agg.IntGrouping;
+import io.namba.arrays.data.IndexedObject;
+import io.namba.arrays.data.IntData;
 import io.namba.arrays.data.IntPair;
 import io.namba.arrays.data.tuple.Two;
+import io.namba.arrays.data.tuple.TwoInts;
 import io.namba.arrays.range.IntRange;
 import io.namba.functions.IntRef;
 import io.namba.functions.IntRef.IntListPredicate;
@@ -1023,14 +1034,841 @@ public class IntList implements NambaList {
 		return Mask.of(this.size(), i -> this.value[i] != 0);
 	}
 
-	public static void main(String[] args) {
-		Namba nb = Namba.instance();
+	////////////// -- completing methods --
 
-		IntList rr = nb.data.ints.range(1, 100).repeat(2);
+	/// methods
 
-		long s = System.currentTimeMillis();
-		System.out.println(rr.where(i -> i.lt(17)).gt(12).odd().list());
+	// indexing
 
-		System.out.println(nb.data.doubles.linSpace(4, 2, 4).asDecimal());
+	// utilities
+	// public IntMatrix toMatrix(int width) {
+	// return new IntMatrix(this.value, width);
+	// }
+
+	public static IntList zip(IntList a, IntList b, IntBinaryOperator op) {
+		Objects.requireNonNull(op, "operation may not be null");
+
+		return a.zip(b, op);
 	}
+
+	/**
+	 * An alias of {@link #negative()}
+	 */
+	public IntList negate() {
+		return this.negative();
+	}
+
+	// Reduction
+
+	private void verifySizeMatch(NambaList left, NambaList right) {
+		if (left.size() != right.size()) {
+			throw new IllegalArgumentException("array sizes don't match");
+		}
+	}
+
+	/**
+	 * Compute a decimal list containing unique values from this list.
+	 * 
+	 * @return A new decimal list with distinct values from this list.
+	 */
+	public IntList distinct() {
+		return new IntList(this.stream().distinct().toArray());
+	}
+
+	/**
+	 * An alias for {@link #distinct()}
+	 */
+	public IntList unique() {
+		return this.distinct();
+	}
+
+	public IntList dropDuplicates() {
+		return this.dropDuplicates(false);
+	}
+
+	public IntStream reverseStream() {
+		return IntStream.iterate(this.value.length - 1, i -> i >= 0, i -> i - 1);
+	}
+
+	public IntList reversed() {
+		return new IntList(reverseStream().toArray());
+	}
+
+	/**
+	 * Remove duplicates from this decimal list, keeping only the first or the last
+	 * value, depending on whether <code>keepLast</code> is set to
+	 * <code>false</code> or <code>true</code>, respectively.
+	 * 
+	 * @param keepLast
+	 *            If <code>true</code>, only the last instance of the duplicate is
+	 *            retained.
+	 * @return A new decimal list with unique values.
+	 */
+	public IntList dropDuplicates(boolean keepLast) {
+		int[] data = (keepLast ? this.reverseStream() : this.stream()).distinct().toArray();
+
+		if (keepLast) {
+			return new IntList(data).reversed();
+		} else {
+			return new IntList(data);
+		}
+	}
+
+	// TODO: look into storing a "sorted" flag with corresponding order.
+	/**
+	 * Return the given number of this list's largest values. This is equivalent to
+	 * slicing a reverse-sorted version of this list using the given number.
+	 * 
+	 * @param n
+	 *            The number of elements to return.
+	 * @return A new list with the <code>n</code> largest values.
+	 */
+	public IntList nLargest(int n) {
+		return new IntList(this.stream().sorted().skip(this.size() - n).toArray()).reversed();
+	}
+
+	/**
+	 * Return the given number of this list's smallest values. This is equivalent to
+	 * slicing a sorted version of this list using the given number.
+	 * 
+	 * @param n
+	 *            The number of elements to return.
+	 * @return A new list with the <code>n</code> smallest values.
+	 */
+	public IntList nSmallest(int n) {
+		return new IntList(this.stream().sorted().limit(n).toArray());
+	}
+
+	/**
+	 * Returns the number of unique elements in this list.
+	 */
+	public int nUnique() {
+		return (int) this.stream().distinct().count();
+	}
+
+	/**
+	 * Creates a copy of this list's data.
+	 */
+	public int[] toArray() {
+		return this.stream().toArray();
+	}
+
+	/**
+	 * Perform a reduction using the given binary operation.
+	 * 
+	 * @param reducer
+	 *            The binary operation to perform the aggregation with. This may not
+	 *            be null.
+	 * @return The aggregated value, or null if the collection is empty.
+	 */
+	public OptionalInt agg(IntBinaryOperator reducer) {
+		return this.stream().reduce(Objects.requireNonNull(reducer, "reducer may not be null"));
+	}
+
+	/**
+	 * An alias for {@link #agg(BinaryOperator)}
+	 */
+	public OptionalInt aggregate(IntBinaryOperator reducer) {
+		return this.agg(reducer);
+	}
+
+	/**
+	 * Perform a reduction using the given binary operation. If the collection is
+	 * empty, the given <code>identity</code> value is returned.
+	 * 
+	 * @param reducer
+	 *            The binary operation to perform the aggregation with. This may not
+	 *            be null.
+	 * @param identity
+	 *            A default value to use for the reduction.
+	 * @return The aggregated value, or null if the collection is empty.
+	 */
+	public int agg(int identity, IntBinaryOperator reducer) {
+		return this.stream().reduce(identity, Objects.requireNonNull(reducer, "reducer may not be null"));
+	}
+
+	/**
+	 * An alias for {@link #agg(int, BinaryOperator)}
+	 */
+	public int aggregate(int identity, IntBinaryOperator reducer) {
+		return this.agg(identity, reducer);
+	}
+
+	public boolean all(IntPredicate test) {
+		for (int i : this.value) {
+			if (!test.test(i))
+				return false;
+		}
+
+		return true;
+	}
+
+	public boolean any(IntPredicate test) {
+		for (int i : this.value) {
+			if (test.test(i))
+				return true;
+		}
+
+		return false;
+	}
+
+	// Concatenate two or more Series.
+	/**
+	 * Concatenate this list and <code>other</code>
+	 * 
+	 * @param other
+	 *            List to append to this
+	 * @return A new decimal list with this and <code>other</code> joined.
+	 */
+	public IntList concat(IntList other) {
+		int[] all = new int[this.value.length + other.value.length];
+
+		System.arraycopy(other, 0, all, this.value.length, other.value.length);
+
+		return IntList.of(all);
+	}
+
+	/**
+	 * An alias for {@link #concat(DataList)}
+	 */
+	public IntList append(IntList other) {
+		return this.concat(other);
+	}
+
+	/**
+	 * Return the integer indices that would sort the list's values.
+	 */
+	public IntList argSort() {
+		return IntList.of(IntStream.range(0, this.size()).mapToObj(i -> TwoInts.of(i, this.value[i]))
+				.sorted(Comparator.comparing(TwoInts::b)).mapToInt(TwoInts::a).toArray());
+	}
+
+	/**
+	 * Return the integer indices that would reverse-sort the list's values.
+	 */
+	public IntList argSortReversed() {
+		// TODO: sort here? Any room for optimization?
+		return this.argSort().reversed();
+	}
+
+	public IntList shift() {
+		return this.shift(1);
+	}
+
+	public IntList shift(int n) {
+		if (0 >= n)
+			throw new IllegalArgumentException("n <= 0");
+
+		int[] b = new int[this.value.length];
+
+		System.arraycopy(this.value, 0, b, n, this.value.length - n);
+
+		return IntList.of(b);
+	}
+
+	/**
+	 * Returns a mask equivalent to a test for low <= x <= high for x in this list.
+	 */
+	public Mask between(int low, int high) {
+		Objects.requireNonNull(low, "low value may not be null");
+		Objects.requireNonNull(low, "high value may not be null");
+
+		boolean[] b = new boolean[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			int v = this.value[i];
+			b[i] = low <= v && high >= v;
+		}
+
+		return Mask.of(b);
+	}
+
+	/**
+	 * Trim values at input thresholds. Assigns values outside boundary to boundary
+	 * values.
+	 * 
+	 * The difference btween this method and {@link #clip(int, int)} is that this
+	 * replaces values out of bounds with the closest boundary element, rather than
+	 * excluding them.
+	 * 
+	 * @see {@link #clip(int, int)} for a similar method.
+	 */
+	public IntList clipToBoundaries(int low, int high) {
+		int[] b = new int[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			int bd = this.value[i];
+			b[i] = Math.max(low, Math.min(high, bd));
+		}
+
+		return of(b);
+	}
+
+	/**
+	 * Apply the given <code>combiner</code> operation element-wise to this list and
+	 * the given <code>other</code>.
+	 * 
+	 * @param other
+	 *            The other decimal list to combine. This is expected to be of the
+	 *            same length as this. May not be null.
+	 * @param combiner
+	 *            An operation to produce a new value from elements from this and
+	 *            the given decimal list. May not be null.
+	 * @see {@link #zip(DataList, BinaryOperator)}
+	 */
+	public IntList combine(IntList other, IntBinaryOperator combiner) {
+		return this.zip(Objects.requireNonNull(other), Objects.requireNonNull(combiner));
+	}
+
+	/*
+	 * Compare to another Series and show the differences.
+	 */
+	public Table compare(IntList other) {
+		Mask nonEqual = this.ne(other);
+
+		return Table.of(Arrays.asList(this.getAt(nonEqual), other.getAt(nonEqual)), null);
+	}
+
+	/**
+	 * Apply a row-wise cumulative computation of values using the given function.
+	 * For the first value, the function is called with null.
+	 * 
+	 * @param aggregator
+	 *            The function computing accumulated values.
+	 * @return A new IntList object with the result of that accumulation.
+	 */
+	public IntList cumFunc(IntBinaryOperator aggregator) {
+		return this.cumFunc(aggregator, false);
+	}
+
+	/**
+	 * Apply a row-wise cumulative computation of values using the given function.
+	 * For the first value, the function is called with null.
+	 * 
+	 * @param aggregator
+	 *            The function computing accumulated values.
+	 * @param skipFirst
+	 *            If <code>true</code>, <code>aggregator</code> is called starting
+	 *            at the second row (passing first and second value of this list).
+	 *            If false, the accumulation starts at the first row, but null is
+	 *            used along with this list's first element to compute the first
+	 *            result.
+	 * @return A new IntList object with the result of that accumulation.
+	 */
+	public IntList cumFunc(IntBinaryOperator aggregator, boolean skipFirst) {
+
+		if (0 == this.size())
+			return IntList.of(new int[0]);
+
+		int[] d = new int[this.size()];
+		int prev;
+		int offset;
+
+		int pos = 0;
+
+		if (skipFirst) {
+			d[pos++] = 0;
+			prev = this.getAt(0);
+			offset = 1;
+		} else {
+			prev = 0;
+			offset = 0;
+		}
+
+		for (int i = offset; i < this.size(); i++) {
+			d[pos++] = prev = aggregator.applyAsInt(prev, this.getAt(i));
+		}
+
+		return new IntList(d);
+	}
+
+	/*
+	 * count 3.0 mean 2.0 std 1.0 min 1.0 25% 1.5 50% 2.0 75% 2.5 max 3.0 dtype:
+	 * float64
+	 */
+	// TODO: Implement
+	public IntList describe() {
+		return null;
+	}
+
+	/**
+	 * Return the first few values of this list. The default value is specified by
+	 * {@link NambaList#SUMMARY_SIZE}
+	 */
+	public IntList head() {
+		return getAt(IntRange.of(SUMMARY_SIZE));
+	}
+
+	/**
+	 * Return the first <code>n</code> values of this list.
+	 */
+	public IntList head(int n) {
+		return getAt(IntRange.of(n));
+	}
+
+	/**
+	 * Return the last few values of this list. The default value is specified by
+	 * {@link NambaList#SUMMARY_SIZE}
+	 */
+	public IntList tail() {
+		return getAt(IntRange.of(this.size() - SUMMARY_SIZE, this.size()));
+	}
+
+	/**
+	 * Return the last <code>n</code> values of this list.
+	 */
+	public IntList tail(int n) {
+		return getAt(IntRange.of(this.size() - n, this.size()));
+	}
+
+	public Map<Integer, Integer> histogram() {
+		return this.stream().boxed().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+				.entrySet().stream().sorted(Entry.comparingByKey()).collect(Collectors.toMap(e -> e.getKey(),
+						e -> e.getValue().intValue(), (a, b) -> a, LinkedHashMap::new));
+	}
+
+	public Map<Integer, Double> normalizedHistogram(boolean percentage) {
+		int size = this.size();
+		int factor = percentage ? 100 : 1;
+		return this.stream().boxed().collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+				.entrySet().stream().sorted(Entry.comparingByKey()).collect(Collectors.toMap(e -> e.getKey(),
+						e -> e.getValue().doubleValue() / size * factor, (a, b) -> a, LinkedHashMap::new));
+	}
+
+	/**
+	 * Returns a histogram of values in this decimal list.
+	 * 
+	 * @return A <code>Table</code> with values and their counts.
+	 */
+	public Table hist() {
+		Map<Integer, Integer> groups = this.histogram();
+
+		int[] keys = new int[groups.size()];
+		int[] counts = new int[groups.size()];
+
+		int i = 0;
+		for (Entry<Integer, Integer> entry : groups.entrySet()) {
+			keys[i] = entry.getKey();
+			counts[i++] = entry.getValue();
+		}
+
+		return Table.of(null, IntList.of(keys), IntList.of(counts));
+	}
+
+	/**
+	 * Returns a histogram of values in this decimal list, with values being the
+	 * ratio of their respective counts, rather than the counts themselves. This
+	 * ratio can optionally be returned as a percent value.
+	 * 
+	 * @param percentage
+	 *            If true, values are returned as a percent rather than a raw ratio.
+	 * @return A <code>Table</code> with values and their count ratios.
+	 */
+	public Table normalizedHist(boolean percentage) {
+		Map<Integer, Double> hist = this.normalizedHistogram(percentage);
+
+		int[] keys = new int[hist.size()];
+		double[] counts = new double[hist.size()];
+		int i = 0;
+		for (Entry<Integer, Double> entry : hist.entrySet()) {
+			keys[i] = entry.getKey();
+			counts[i++] = entry.getValue();
+		}
+
+		return Table.of(null, IntList.of(keys), DoubleList.of(counts));
+	}
+
+	/*
+	 * Return the row label of the maximum value.
+	 * 
+	 * If multiple values equal the maximum, the first row label with that value is
+	 * returned.
+	 */
+
+	// TODO: Implement idxmax and idxmin
+	// public Object idxmax() {
+	//
+	// }
+	//
+	// public Object idxmin() {
+	//
+	// }
+
+	/**
+	 * Returns true if all values in this decimal list are distinct.
+	 * 
+	 * @return True if the decimal list contains only unique values, false
+	 *         otherwise.
+	 */
+	public boolean isUnique() {
+		return this.distinct().size() == this.size();
+	}
+
+	/**
+	 * Return the first element of the underlying data.
+	 * 
+	 * @return Null if the list is empty, the first element otherwise.
+	 */
+	public OptionalInt item() {
+		return this.value.length == 0 ? OptionalInt.empty() : OptionalInt.of(this.value[0]);
+	}
+
+	/*
+	 * Lazily iterate over (index, value) tuples.
+	 * 
+	 * This method returns an iterable tuple (index, value). This is convenient if
+	 * you want to create a lazy iterator.
+	 */
+	// TODO: implement index-based iteration
+	// public Iterator<Two<Object, int>> items() {
+	//
+	// }
+	//
+	// public Stream<Two<Object, int>> itemStream() {
+	//
+	// }
+
+	/**
+	 * Returns a {@link java.util.stream.Stream stream} of objects holding each
+	 * element of this list and its corresponding index.
+	 * 
+	 * @return A stream that supplies indexed elements from this decimal list.
+	 * @see {@link #indexItemStreamReversed()}
+	 */
+	public Stream<IndexedObject<Integer>> indexItemStream() {
+		return IntStream.range(0, this.size()).mapToObj(i -> IndexedObject.of(i, this.value[i]));
+	}
+
+	/**
+	 * Returns a {@link java.util.stream.Stream stream} of objects holding each
+	 * element of this list and its corresponding index. Unlike
+	 * {@link #indexItemStream()}, this method's stream will supply elements in
+	 * their reverse order.
+	 * 
+	 * @return A stream that supplies indexed elements from this decimal list, in
+	 *         reverse order.
+	 * @see {@link #indexItemStream()}
+	 */
+	public Stream<IndexedObject<Integer>> indexItemStreamReversed() {
+		int total = this.size();
+		return IntStream.range(0, this.size()).map(i -> total - i - 1)
+				.mapToObj(i -> IndexedObject.of(i, this.value[i]));
+	}
+
+	/*
+	 * Return unbiased kurtosis over requested axis.
+	 * 
+	 * Kurtosis obtained using Fisher’s definition of kurtosis (kurtosis o
+	 */
+	// TODO: Implement kurtosis
+	// public int kurtosis() {
+	//
+	// }
+	//
+	// public int kurt() {
+	//
+	// }
+
+	/*
+	 * Return the mean absolute deviation of the values for the requested axis.
+	 */
+	// TODO: Implement this
+	// public IntList meanAbsoluteDeviation() {
+	//
+	// }
+	// public IntList mad() {
+	// return this.meanAbsoluteDeviation();
+	// }
+
+	/**
+	 * Replaces with the given value where the predicate evaluates to true.
+	 * 
+	 * @param cond
+	 *            The condition to test with.
+	 * @param val
+	 *            The value to replace matching elements.
+	 * @return A new list with matching elements replaced.
+	 */
+	public IntList replaceWhere(IntPredicate cond, int val) {
+		Objects.requireNonNull(cond);
+
+		int[] v = new int[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			int value = this.getAt(i);
+			if (cond.test(value)) {
+				v[i] = val;
+			} else {
+				v[i] = value;
+			}
+		}
+
+		return IntList.of(v);
+	}
+
+	/**
+	 * Replaces with the given value where the mask is set to true.
+	 * 
+	 * @param cond
+	 *            The mask with indexes to replace set to true.
+	 * @param val
+	 *            The value to replace matching elements.
+	 * @return A new list with matching elements replaced.
+	 */
+	public IntList replaceWhere(Mask cond, int val) {
+		Objects.requireNonNull(cond);
+
+		int[] v = new int[this.size()];
+
+		for (int i = 0; i < this.size(); i++) {
+			int value = this.getAt(i);
+			if (cond.getAt(i)) {
+				v[i] = val;
+			} else {
+				v[i] = value;
+			}
+		}
+
+		return IntList.of(v);
+	}
+
+	/**
+	 * Return the median of the values. Note that this skips null values.
+	 */
+	public OptionalInt median() {
+
+		IntList withoutNa = this.sorted();
+
+		if (withoutNa.size() == 0)
+			return OptionalInt.empty();
+		if (withoutNa.size() % 2 == 1) {
+			return withoutNa.getAt(withoutNa.size() / 2 + 1);
+		} else {
+			int medLocation = withoutNa.size() / 2;
+			return OptionalInt.of((withoutNa.value[medLocation] + withoutNa.value[medLocation + 1]) / 2);
+		}
+	}
+
+	/*
+	 * Return value at the given quantile.
+	 */
+	// TODO: implement quantile
+	// public int quantile(int quantile) {
+	/*
+	 * This optional parameter specifies the interpolation method to use, when the
+	 * desired quantile lies between two data points i and j:
+	 * 
+	 * linear: i + (j - i) * fraction, where fraction is the fractional part of the
+	 * index surrounded by i and j.
+	 * 
+	 * lower: i.
+	 * 
+	 * higher: j.
+	 * 
+	 * nearest: i or j whichever is nearest.
+	 * 
+	 * midpoint: (i + j) / 2.
+	 */
+	// }
+
+	/*
+	 * Compute numerical data ranks (1 through n) along axis.
+	 * 
+	 * By default, equal values are assigned a rank that is the average of the ranks
+	 * of those values.
+	 */
+	// TODO: Implement rank()
+	// public IntList rank() {
+	/*
+	 * How to rank the group of records that have the same value (i.e. ties):
+	 * 
+	 * average: average rank of the group
+	 * 
+	 * min: lowest rank in the group
+	 * 
+	 * max: highest rank in the group
+	 * 
+	 * first: ranks assigned in order they appear in the array
+	 * 
+	 * dense: like ‘min’, but rank always increases by 1 between groups.
+	 */
+	// }
+
+	/*
+	 * Needs to be defined with window objects.
+	 */
+	// TODO: Implement Rolling
+	// public Map<Two<int, int>, IntList> rolling() {
+	//
+	// }
+
+	/**
+	 * Extract a sample of values from this decimal list.
+	 * 
+	 * @param fraction
+	 *            The fraction of the size of this list to sample. Must be a valid
+	 *            ratio: 0.0 < sample < 1.0
+	 * @return A new list with a sample from this list.
+	 */
+	public IntList sample(double fraction) {
+		if (!(0 < fraction && fraction < 1))
+			throw new IllegalArgumentException("fraction must be greater than 0 and smaller than 1");
+		return this.sample((int) (this.size() * fraction));
+	}
+
+	/**
+	 * Extract a sample of values from this decimal list.
+	 * 
+	 * @param size
+	 *            The size of the sample.
+	 * @return A new decimal list with sample values drawn from this list.
+	 */
+	public IntList sample(int size) {
+		return this.getAt(IntData.instance().randomArray(size, 0, this.size()));
+	}
+
+	public IntList sample(int size, long randomState) {
+		return this.getAt(IntData.instance().randomArray(randomState, size, 0, this.size()));
+	}
+
+	public IntList sorted(boolean descending) {
+		IntList v = of(this.stream().sorted().toArray());
+		if (descending) {
+			return v.reversed();
+		} else {
+			return v;
+		}
+	}
+
+	public IntList sorted() {
+		return this.sorted(false);
+	}
+
+	public IntList where(Mask mask) {
+		return this.getAt(mask);
+	}
+
+	public <K> IntGrouping<K> groupBy(IntFunction<K> classifier) {
+		return IntGrouping.of(this.boxed(),
+				IntStream.range(0, size()).mapToObj(i -> Two.of(i, classifier.apply(this.value[i])))
+						.collect(Collectors.groupingBy(Two::b, Collectors.mapping(Two::a, Collectors.toList()))));
+	}
+
+	public StringList string(DecimalFormat numberFormat) {
+		return StringList.of(this.stream().mapToObj(numberFormat::format).collect(Collectors.toList()));
+	}
+
+	public Mask test(IntPredicate predicate) {
+		Objects.requireNonNull(predicate, "predicate cannot be null");
+
+		boolean[] b = new boolean[this.value.length];
+
+		for (int i = 0; i < this.value.length; i++)
+			b[i] = predicate.test(this.value[i]);
+
+		return Mask.of(b);
+	}
+
+	// Cookbook
+	/**
+	 * Returns a pair with this list partitioned in two lists: the first one
+	 * contains values that passed the given predicate's test, and the second one,
+	 * values that failed the test.
+	 * 
+	 * @param predicate
+	 *            The predicate to partition values by.
+	 * @return A pair where Two.a contains true values and Two.b false values.
+	 */
+	public Two<IntList, IntList> partition(IntPredicate predicate) {
+		Objects.requireNonNull(predicate, "predicate may not be null");
+
+		return this.test(predicate).partition(this, l -> IntList.of(l.stream().mapToInt(Integer::intValue).toArray()));
+	}
+
+	public Two<IntList, IntList> partition(Mask mask) {
+		return Objects.requireNonNull(mask, "mask may not be null").partition(this,
+				l -> IntList.of(l.stream().mapToInt(Integer::intValue).toArray()));
+	}
+
+	public IntList applyWithIndex(IntBinaryOperator op) {
+		Objects.requireNonNull(op, "operation cannot be null");
+
+		int[] b = new int[this.size()];
+
+		for (int i = 0; i < size(); i++) {
+			b[i] = op.applyAsInt(i, this.value[i]);
+		}
+
+		return of(b);
+	}
+
+	public <T> DataList<T> applyWithIndex(BiFunction<Integer, Integer, T> op) {
+		Objects.requireNonNull(op, "operation cannot be null");
+
+		List<T> res = new ArrayList<>(this.size());
+
+		for (int i = 0; i < size(); i++) {
+			res.add(op.apply(i, this.value[i]));
+		}
+
+		return new DataList<>(DataType.OBJECT, res);
+	}
+
+	public IntList applyWhere(Mask mask, int newVal) {
+		// explicit parameter types required to resolve ambiguity
+		return this.applyWithIndex((int i, int val) -> mask.getAt(i) ? newVal : val);
+	}
+
+	public IntList applyWhere(Mask mask, IntBinaryOperator mapper) {
+		return this.applyWithIndex((int i, int val) -> mask.getAt(i) ? mapper.applyAsInt(i, val) : val);
+	}
+
+	public IntList applyWhere(Mask mask, int trueVal, int falseVal) {
+		return this.applyWithIndex((int i, int val) -> mask.getAt(i) ? trueVal : falseVal);
+	}
+
+	public IntList putAt(Mask mask, TwoInts values) {
+		Objects.requireNonNull(values, "replacement values may not be null");
+		return this.applyWhere(mask, values.a(), values.b());
+	}
+
+	public IntList putAt(Mask mask, int newVal) {
+		return this.applyWhere(mask, newVal);
+	}
+
+	public IntList applyWhere(IntPredicate test, int newVal) {
+		return this.apply(val -> test.test(val) ? newVal : null);
+	}
+
+	public IntList putAt(IntPredicate test, int newVal) {
+		return this.applyWhere(test, newVal);
+	}
+
+	public IntList applyWhere(IntPredicate test, int trueValue, int falseValue) {
+		return this.apply(val -> test.test(val) ? trueValue : falseValue);
+	}
+
+	public IntList putAt(IntPredicate test, TwoInts values) {
+		Objects.requireNonNull(values, "replacement values may not be null");
+		return this.applyWhere(test, values.a(), values.b());
+	}
+
+	public IntList applyWhere(IntPredicate test, IntUnaryOperator valueMapper) {
+		return this.test(test).applyWhereTrue(i -> valueMapper.applyAsInt(this.getAt(i)),
+				l -> IntList.of(l.stream().mapToInt(Integer::intValue).toArray()));
+	}
+
+	public IntList getAt(IntPredicate predicate) {
+		return this.getAt(this.test(predicate));
+	}
+
+	public IntList getAt(int from, int to) {
+		return this.getAt(IntRange.of(from, to));
+	}
+
+	public IntList putAt(IntPredicate test, IntUnaryOperator valueMapper) {
+		return this.applyWhere(test, valueMapper);
+	}
+
+	///////////// -- end completing methods --
 }

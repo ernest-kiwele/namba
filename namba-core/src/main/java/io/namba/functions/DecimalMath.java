@@ -30,9 +30,9 @@ import io.namba.arrays.DecimalList;
  * @author Ernest Kiwele
  *
  */
-public class NambaMath {
+public class DecimalMath {
 
-	private NambaMath() {
+	private DecimalMath() {
 	}
 
 	public static BigDecimal max(BigDecimal bd1, BigDecimal bd2) {
@@ -83,14 +83,14 @@ public class NambaMath {
 				a = a.add(bd);
 		}
 
-		return a;
+		return a.divide(BigDecimal.valueOf(coll.size()));
 	}
 
 	public static BigDecimal median(Collection<BigDecimal> coll) {
 		if (null == coll || coll.isEmpty())
 			return null;
 
-		List<BigDecimal> l = new ArrayList<>();
+		List<BigDecimal> l = new ArrayList<>(coll);
 		l.sort(Comparator.naturalOrder());
 
 		if (l.size() % 2 == 1) {

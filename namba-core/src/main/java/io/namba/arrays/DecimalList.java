@@ -15,6 +15,7 @@
 
 package io.namba.arrays;
 
+import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.text.DecimalFormat;
@@ -40,7 +41,6 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import io.namba.Namba;
 import io.namba.arrays.agg.DecimalGrouping;
 import io.namba.arrays.data.DecimalData;
 import io.namba.arrays.data.IndexedObject;
@@ -50,7 +50,7 @@ import io.namba.arrays.range.IntRange;
 import io.namba.functions.DecimalRef;
 import io.namba.functions.DecimalRef.DecimalPredicate;
 import io.namba.functions.DecimalTest;
-import io.namba.functions.NambaMath;
+import io.namba.functions.DecimalMath;
 
 /**
  * 
@@ -1400,7 +1400,7 @@ public class DecimalList extends DataList<BigDecimal> {
 
 		for (int i = 0; i < this.size(); i++) {
 			BigDecimal bd = this.value.get(i);
-			b[i] = NambaMath.max(low, NambaMath.min(high, bd));
+			b[i] = DecimalMath.max(low, DecimalMath.min(high, bd));
 		}
 
 		return of(b);
@@ -1430,7 +1430,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 *            The other list supplying alternative values.
 	 */
 	public DecimalList combineFirst(DecimalList other) {
-		return this.zip(other, NambaMath::firstNonNull);
+		return this.zip(other, DecimalMath::firstNonNull);
 	}
 
 	/*
@@ -1537,7 +1537,7 @@ public class DecimalList extends DataList<BigDecimal> {
 
 		BigDecimal val = null;
 		for (int i = 0; i < v.length; i++) {
-			val = NambaMath.max(value.get(i), val);
+			val = DecimalMath.max(value.get(i), val);
 			v[i] = val;
 		}
 
@@ -1554,7 +1554,7 @@ public class DecimalList extends DataList<BigDecimal> {
 
 		BigDecimal val = null;
 		for (int i = 0; i < v.length; i++) {
-			val = NambaMath.min(value.get(i), val);
+			val = DecimalMath.min(value.get(i), val);
 			v[i] = val;
 		}
 
@@ -1917,7 +1917,7 @@ public class DecimalList extends DataList<BigDecimal> {
 			return withoutNa.getAt(withoutNa.size() / 2 + 1);
 		} else {
 			int medLocation = withoutNa.size() / 2;
-			return NambaMath.mean(withoutNa.getAt(medLocation), withoutNa.getAt(medLocation + 1));
+			return DecimalMath.mean(withoutNa.getAt(medLocation), withoutNa.getAt(medLocation + 1));
 		}
 	}
 
@@ -1989,7 +1989,7 @@ public class DecimalList extends DataList<BigDecimal> {
 
 		for (int i = 0; i < v.length; i++) {
 			BigDecimal val = this.value.get(i);
-			v[i] = null == val ? null : NambaMath.truncate(val, decimals);
+			v[i] = null == val ? null : DecimalMath.truncate(val, decimals);
 		}
 
 		return DecimalList.of(v);
@@ -2010,7 +2010,7 @@ public class DecimalList extends DataList<BigDecimal> {
 
 		for (int i = 0; i < v.length; i++) {
 			BigDecimal val = this.value.get(i);
-			v[i] = null == val ? null : NambaMath.truncate(val, decimals.getAt(i));
+			v[i] = null == val ? null : DecimalMath.truncate(val, decimals.getAt(i));
 		}
 
 		return DecimalList.of(v);
@@ -2248,6 +2248,12 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public static void main(String[] args) {
-		System.out.println(Namba.instance().data.ints.random(100, 5, 6).asDecimal().hist());
+		Arrays.stream(DecimalList.class.getDeclaredMethods()).filter(m -> !m.isSynthetic()).map(m -> String.format(
+				"%s %s %s(%s){}", Modifier.isPublic(m.getModifiers()) ? "public" : "private",
+				m.getReturnType().getSimpleName(), m.getName(),
+				Arrays.stream(m.getParameters()).map(param -> param.getType().getSimpleName() + " " + param.getName())
+						.collect(Collectors.joining(", "))))
+				.map(m -> m.replaceAll(" DecimalList ", " IntList ")).map(m -> m.replaceAll(" BigDecimal ", " int "))
+				.forEach(System.out::println);
 	}
 }
