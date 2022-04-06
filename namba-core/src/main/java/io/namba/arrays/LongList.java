@@ -140,7 +140,7 @@ public class LongList implements NambaList {
 	}
 
 	public LongList map(LongUnaryOperator op) {
-		var operation = Objects.requireNonNull(op);
+		LongUnaryOperator operation = Objects.requireNonNull(op);
 		long[] n = new long[this.value.length];
 		for (int i = 0; i < this.value.length; i++) {
 			n[i] = operation.applyAsLong(this.value[i]);
@@ -247,7 +247,8 @@ public class LongList implements NambaList {
 	public long mode() {
 		return IntStream.range(0, this.value.length).mapToObj(i -> this.value[i])
 				.collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet().stream()
-				.max(Map.Entry.comparingByValue()).orElseThrow().getKey();
+				.max(Map.Entry.comparingByValue()).orElseThrow(() -> new IllegalStateException("no value found"))
+				.getKey();
 	}
 
 	public DoubleList sin() {
@@ -918,15 +919,6 @@ public class LongList implements NambaList {
 
 	////////////// -- completing methods --
 
-	/// methods
-
-	// indexing
-
-	// utilities
-	// public IntMatrix toMatrix(long width) {
-	// return new IntMatrix(this.value, width);
-	// }
-
 	public static LongList zip(LongList a, LongList b, LongBinaryOperator op) {
 		Objects.requireNonNull(op, "operation may not be null");
 
@@ -963,7 +955,7 @@ public class LongList implements NambaList {
 	}
 
 	public LongStream reverseStream() {
-		return LongStream.iterate(this.value.length - 1, i -> i >= 0, i -> i - 1);
+		return LongStream.iterate(this.value.length - 1, i -> i - 1).limit(this.size());
 	}
 
 	public LongList reversed() {

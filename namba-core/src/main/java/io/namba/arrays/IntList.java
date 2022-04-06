@@ -93,7 +93,7 @@ public class IntList implements NambaList {
 	}
 
 	public static IntList of(int size, int value) {
-		var array = new IntList(size);
+		IntList array = new IntList(size);
 		Arrays.fill(array.value, value);
 		return array;
 	}
@@ -189,7 +189,7 @@ public class IntList implements NambaList {
 	}
 
 	public IntList map(IntUnaryOperator op) {
-		var operation = Objects.requireNonNull(op);
+		IntUnaryOperator operation = Objects.requireNonNull(op);
 		int[] n = new int[this.value.length];
 		for (int i = 0; i < this.value.length; i++) {
 			n[i] = operation.applyAsInt(this.value[i]);
