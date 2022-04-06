@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -162,8 +163,17 @@ public class DataList<T> implements Iterable<T>, NambaList {
 	}
 
 	public <U> DataList<U> map(Function<T, U> op) {
+		Objects.requireNonNull(op, "operation may not be null");
+
 		return new DataList<>(this.dataType,
 				this.stream().map(v -> v == null ? null : op.apply(v)).collect(Collectors.toList()));
+	}
+
+	/**
+	 * Counts non-null elements
+	 */
+	public int count() {
+		return (int) this.stream().filter(Objects::nonNull).count();
 	}
 
 	public DataList<T> apply(UnaryOperator<T> op) {

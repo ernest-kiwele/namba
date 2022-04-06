@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
@@ -43,6 +42,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import io.namba.Namba;
 import io.namba.arrays.agg.DecimalGrouping;
+import io.namba.arrays.data.DecimalData;
 import io.namba.arrays.data.IndexedObject;
 import io.namba.arrays.data.IntData;
 import io.namba.arrays.data.tuple.Two;
@@ -161,6 +161,7 @@ public class DecimalList extends DataList<BigDecimal> {
 		if (this.size() != other.size()) {
 			throw new IllegalStateException("Arrays are of different sizes");
 		}
+		Objects.requireNonNull(op, "operation may not be null");
 
 		List<BigDecimal> list = new ArrayList<>();
 		Iterator<BigDecimal> it1 = this.iterator(), it2 = other.iterator();
@@ -172,44 +173,76 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public static DecimalList zip(DecimalList a, DecimalList b, BinaryOperator<BigDecimal> op) {
+		Objects.requireNonNull(op, "operation may not be null");
+
 		return a.zip(b, op);
 	}
 
 	@Override
 	public DecimalList apply(UnaryOperator<BigDecimal> op) {
+		Objects.requireNonNull(op, "operation may not be null");
+
 		return new DecimalList(this.map(v -> null == v ? null : op.apply(v)));
 	}
 
 	public DecimalList multiply(BigDecimal n) {
+		if (null == n) {
+			return DecimalData.instance().nans(this.size());
+		}
+
 		return new DecimalList(this.apply(i -> i.multiply(n, this.mathContext)));
 	}
 
 	public DecimalList multiply(DecimalList n) {
-		return this.zip(n, (a, b) -> a.multiply(b, this.mathContext));
+		Objects.requireNonNull(n, "operand n may not be null");
+		this.verifySizeMatch(this, n);
+
+		return this.zip(n, (a, b) -> (null == a || null == b) ? null : a.multiply(b, this.mathContext));
 	}
 
 	public DecimalList minus(BigDecimal n) {
+		if (null == n) {
+			return DecimalData.instance().nans(this.size());
+		}
+
 		return this.apply(i -> i.subtract(n, this.mathContext));
 	}
 
 	public DecimalList minus(DecimalList n) {
-		return this.zip(n, (a, b) -> a.subtract(b, this.mathContext));
+		Objects.requireNonNull(n, "operand n may not be null");
+		this.verifySizeMatch(this, n);
+
+		return this.zip(n, (a, b) -> (null == a || null == b) ? null : a.subtract(b, this.mathContext));
 	}
 
 	public DecimalList plus(BigDecimal n) {
+		if (null == n) {
+			return DecimalData.instance().nans(this.size());
+		}
+
 		return this.apply(i -> i.add(n, this.mathContext));
 	}
 
 	public DecimalList plus(DecimalList n) {
-		return this.zip(n, (a, b) -> a.add(b, this.mathContext));
+		Objects.requireNonNull(n, "operand n may not be null");
+		this.verifySizeMatch(this, n);
+
+		return this.zip(n, (a, b) -> (null == a || null == b) ? null : a.add(b, this.mathContext));
 	}
 
 	public DecimalList divide(BigDecimal n) {
+		if (null == n) {
+			return DecimalData.instance().nans(this.size());
+		}
+
 		return this.apply(i -> i.divide(n, this.mathContext));
 	}
 
 	public DecimalList divide(DecimalList n) {
-		return this.zip(n, (a, b) -> a.divide(b, this.mathContext));
+		Objects.requireNonNull(n, "operand n may not be null");
+		this.verifySizeMatch(this, n);
+
+		return this.zip(n, (a, b) -> (null == a || null == b) ? null : a.divide(b, this.mathContext));
 	}
 
 	public DecimalList power(int n) {
@@ -217,10 +250,15 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public DecimalList power(IntList n) {
-		List<BigDecimal> bd = new ArrayList<>();
+		Objects.requireNonNull(n, "operand n may not be null");
+		this.verifySizeMatch(this, n);
+
+		List<BigDecimal> bd = new ArrayList<>(this.size());
 		for (int i = 0; i < this.size(); i++) {
-			bd.add(this.value.get(i).pow(n.getAt(i), this.mathContext));
+			BigDecimal v = this.value.get(i);
+			bd.add(null != v ? v : this.value.get(i).pow(n.getAt(i), this.mathContext));
 		}
+
 		return new DecimalList(bd, null);
 	}
 
@@ -248,6 +286,13 @@ public class DecimalList extends DataList<BigDecimal> {
 	 */
 	public DecimalList negative() {
 		return this.apply(BigDecimal::negate);
+	}
+
+	/**
+	 * An alias of {@link #negative()}
+	 */
+	public DecimalList negate() {
+		return this.negative();
 	}
 
 	/**
@@ -296,7 +341,8 @@ public class DecimalList extends DataList<BigDecimal> {
 	 */
 	public BigDecimal mode() {
 		return this.stream().collect(Collectors.groupingBy(Function.identity(), Collectors.counting())).entrySet()
-				.stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey();
+				.stream().max(Map.Entry.comparingByValue())
+				.orElseThrow(() -> new IllegalStateException("Is the list empty?")).getKey();
 	}
 
 	/**
@@ -305,7 +351,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * to compute new values used to create a new decimal list's elements.
 	 * 
 	 * <p>
-	 * All <code>null</code> values will be returned without being using
+	 * All <code>null</code> values will be returned as is without using
 	 * <code>op</code>.
 	 * </p>
 	 * 
@@ -452,17 +498,17 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public DecimalList square() {
-		return this.apply(v -> v.multiply(v, this.mathContext));
+		return this.apply(v -> null == v ? null : v.multiply(v, this.mathContext));
 	}
 
 	/**
 	 * Computes the square root of each element and returns a new decimal list.
 	 * 
 	 * @return A new list with elements corresponding to square roots of this
-	 *         instance's elements.
+	 *         instance's elements. Nulls will be preserved.
 	 */
 	public DecimalList squareRoot() {
-		return this.apply(v -> v.sqrt(this.mathContext));
+		return this.apply(v -> null == v ? null : v.sqrt(this.mathContext));
 	}
 
 	/**
@@ -482,7 +528,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A new list with the result of that addition.
 	 */
 	public DecimalList next() {
-		return this.apply(v -> v.add(BigDecimal.ONE));
+		return this.apply(v -> null == v ? null : v.add(BigDecimal.ONE));
 	}
 
 	/**
@@ -491,7 +537,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A new list with the result of that subtraction.
 	 */
 	public DecimalList previous() {
-		return this.apply(v -> v.subtract(BigDecimal.ONE));
+		return this.apply(v -> null == v ? null : v.subtract(BigDecimal.ONE));
 	}
 
 	// bitwise operators
@@ -534,12 +580,14 @@ public class DecimalList extends DataList<BigDecimal> {
 	 *             If the sizes of the two lists do not match.
 	 */
 	public Mask equals(DecimalList other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		this.verifySizeMatch(this, other);
 
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
-			a[i] = this.value.get(i) != null && this.value.get(i).equals(other.value.get(i));
+			BigDecimal v = this.value.get(i);
+			a[i] = v != null && v.equals(other.value.get(i));
 		}
 
 		return Mask.of(a);
@@ -554,12 +602,14 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask lt(DecimalList other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		this.verifySizeMatch(this, other);
 
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
-			a[i] = this.value.get(i) != null && this.value.get(i).compareTo(other.value.get(i)) < 0;
+			BigDecimal v = this.value.get(i);
+			a[i] = null != v && v.compareTo(other.value.get(i)) < 0;
 		}
 
 		return Mask.of(a);
@@ -574,6 +624,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask lt(BigDecimal other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
@@ -592,6 +643,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask le(DecimalList other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		this.verifySizeMatch(this, other);
 
 		boolean[] a = new boolean[this.value.size()];
@@ -612,6 +664,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask le(BigDecimal other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
@@ -630,6 +683,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask gt(DecimalList other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		this.verifySizeMatch(this, other);
 
 		boolean[] a = new boolean[this.value.size()];
@@ -649,6 +703,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask gt(BigDecimal other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
@@ -667,6 +722,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask ge(DecimalList other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		this.verifySizeMatch(this, other);
 
 		boolean[] a = new boolean[this.value.size()];
@@ -686,6 +742,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return A mask with results of that comparison.
 	 */
 	public Mask ge(BigDecimal other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
@@ -696,6 +753,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public Mask ne(DecimalList other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		this.verifySizeMatch(this, other);
 
 		boolean[] a = new boolean[this.value.size()];
@@ -707,7 +765,16 @@ public class DecimalList extends DataList<BigDecimal> {
 		return Mask.of(a);
 	}
 
+	/**
+	 * 
+	 * @param other
+	 * @return
+	 * @throws NullPointerException
+	 *             If other is null. This exception is being raised for
+	 *             consistency's sake and to prevent bugs in client code.
+	 */
 	public Mask ne(BigDecimal other) {
+		Objects.requireNonNull(other, "operand other may not be null");
 		boolean[] a = new boolean[this.value.size()];
 
 		for (int i = 0; i < a.length; i++) {
@@ -727,7 +794,8 @@ public class DecimalList extends DataList<BigDecimal> {
 			return null;
 
 		BigDecimal v = BigDecimal.ZERO;
-		for (int i = 0; i < this.value.size(); i++) {
+		int n = this.value.size();
+		for (int i = 0; i < n; i++) {
 			BigDecimal e = this.value.get(i);
 
 			if (null != e) {
@@ -735,7 +803,7 @@ public class DecimalList extends DataList<BigDecimal> {
 			} else if (skipNans) {
 				continue;
 			} else if (null == nanValue) {
-				return null;
+				return null; // probably bug from caller, but this is it.
 			} else {
 				v = v.add(nanValue, this.mathContext);
 			}
@@ -779,7 +847,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public BigDecimal product(boolean skipNans) {
-		return this.product(skipNans, null);
+		return this.product(skipNans, BigDecimal.ONE);
 	}
 
 	public BigDecimal product(BigDecimal nanValue) {
@@ -892,8 +960,8 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	/**
-	 * Create a new decimal list with values from this list filtered to fit the
-	 * given range, both <code>low</code> and <code>high</code> inclusive.
+	 * Create a new decimal list with values from this list filtered to those within
+	 * the given range, both <code>low</code> and <code>high</code> inclusive.
 	 * 
 	 * @param low
 	 *            The minimum value to clip to.
@@ -903,6 +971,9 @@ public class DecimalList extends DataList<BigDecimal> {
 	 *         given range.
 	 */
 	public DecimalList clip(BigDecimal low, BigDecimal high) {
+		Objects.requireNonNull(low, "low value may not be null");
+		Objects.requireNonNull(high, "high value may not be null");
+
 		return new DecimalList(this.value.stream().filter(i -> low.compareTo(i) <= 0 && high.compareTo(i) >= 0)
 				.collect(Collectors.toList()));
 	}
@@ -946,8 +1017,8 @@ public class DecimalList extends DataList<BigDecimal> {
 		return this.sampleVar().sqrt(this.mathContext);
 	}
 
-	private void verifySizeMatch(DecimalList left, DecimalList right) {
-		if (left.value.size() != right.value.size()) {
+	private void verifySizeMatch(NambaList left, NambaList right) {
+		if (left.size() != right.size()) {
 			throw new IllegalArgumentException("array sizes don't match");
 		}
 	}
@@ -968,7 +1039,10 @@ public class DecimalList extends DataList<BigDecimal> {
 	// implementation
 	@Override
 	public DecimalList repeat(int n) {
-		List<BigDecimal> v = new ArrayList<>();
+		if (0 >= n)
+			throw new IllegalArgumentException("n must be greater than 0");
+
+		List<BigDecimal> v = new ArrayList<>(n * this.size());
 
 		for (int i = 0; i < n; i++) {
 			v.addAll(this.value);
@@ -978,7 +1052,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	/**
-	 * Returns indices of non-zero elements. Nulls are not excluded from the
+	 * Returns non-zero elements as a new list. Nulls are not excluded from the
 	 * returned list.
 	 */
 	public DecimalList nonZero() {
@@ -1016,13 +1090,6 @@ public class DecimalList extends DataList<BigDecimal> {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Counts non-null elements
-	 */
-	public int count() {
-		return (int) this.stream().filter(Objects::nonNull).count();
 	}
 
 	/**
@@ -1144,7 +1211,7 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * @return The aggregated value, or null if the collection is empty.
 	 */
 	public BigDecimal agg(BigDecimal identity, BinaryOperator<BigDecimal> reducer) {
-		return this.value.stream().reduce(identity, reducer);
+		return this.value.stream().reduce(identity, Objects.requireNonNull(reducer, "reducer may not be null"));
 	}
 
 	/**
@@ -1305,6 +1372,9 @@ public class DecimalList extends DataList<BigDecimal> {
 	 * Returns a mask equivalent to a test for low <= x <= high for x in this list.
 	 */
 	public Mask between(BigDecimal low, BigDecimal high) {
+		Objects.requireNonNull(low, "low value may not be null");
+		Objects.requireNonNull(low, "high value may not be null");
+
 		boolean[] b = new boolean[this.size()];
 
 		for (int i = 0; i < this.size(); i++) {
@@ -1987,8 +2057,6 @@ public class DecimalList extends DataList<BigDecimal> {
 
 	/*
 	 * Shift index by desired number of periods with an optional time freq.
-	 * 
-	 * 
 	 */
 	@Override
 	public DecimalList shift(int n) {
@@ -2180,8 +2248,6 @@ public class DecimalList extends DataList<BigDecimal> {
 	}
 
 	public static void main(String[] args) {
-		Random random = new Random();
-		var dl = Namba.instance().data.decimals.generate(10, () -> new BigDecimal(random.nextInt(100)));
-		System.out.println(dl.groupBy(n -> n.compareTo(BigDecimal.valueOf(0.5)) > 0).min());
+		System.out.println(Namba.instance().data.ints.random(100, 5, 6).asDecimal().hist());
 	}
 }
