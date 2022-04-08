@@ -538,15 +538,6 @@ public class DateTimeArray extends DataList<LocalDateTime> {
 		return StringList.of(this.map(formatter::format).value);
 	}
 
-	/*
-	 * Return a Dataframe of the components of the Timedeltas (a DF with columns
-	 * like days hours minutes seconds milliseconds microseconds nanoseconds).
-	 */
-	// TODO: implement
-	// public Table components() {
-	//
-	// }
-
 	public IntList daysInMonth() {
 		int[] v = new int[size()];
 
